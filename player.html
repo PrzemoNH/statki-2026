@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STATKI PLAYER</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#0a1628;
+color:white;
+display:flex;
+flex-direction:column;
+align-items:center;
+padding:20px;
+}
+
+input,button{
+padding:12px;
+width:280px;
+margin:6px;
+border-radius:8px;
+border:none;
+}
+
+button{
+background:#4fc3f7;
+font-weight:bold;
+cursor:pointer;
+}
+
+#game{
+display:none;
+margin-top:20px;
+}
+
+#board{
+display:grid;
+grid-template-columns:repeat(10,28px);
+gap:2px;
+margin-top:15px;
+}
+
+.cell{
+width:28px;
+height:28px;
+background:#1b3b5c;
+}
+
+.ship{
+background:#4fc3f7;
+}
+
+#status{
+margin-top:10px;
+color:#aaa;
+font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>⚓ PLAYER</h2>
+
+<div id="login">
+<input id="roomCode" placeholder="ROOM CODE">
+<input id="nick" placeholder="NICK">
+<button id="join">JOIN GAME</button>
+</div>
+
+<div id="game">
+
+<h3 id="info"></h3>
+
+<div id="board"></div>
+
+<button id="readyBtn">READY</button>
+
+<div id="status">---</div>
+
+</div>
+
+<script>
+
+const supabaseUrl = "https://phwoggxmdmtycvyrcyba.supabase.co";
+const supabaseKey = "TU_WKLEJ_ANON_KEY_Z_SUPABASE";
+
+const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+let room = null;
+let player = null;
+
+let board = Array.from({length:10},()=>Array(10).fill(0));
+
+/* JOIN */
+document.getElementById("join").onclick = async () => {
+
+const code = document.getElementById("roomCode").value.trim().toUpperCase();
+const nick = document.getElementById("nick").value || "Player";
+
+const {data:roomData} = await db
+.from("rooms")
+.select("*")
+.eq("code",code)
+.single();
+
+room = roomData;
+
+/* CREATE PLAYER */
+const {data:p} = await db
+.from("players")
+.insert([{
+room_id: room.id,
+nick,
+color: randomColor(),
+ready:false
+}])
+.select()
+.single();
+
+player = p;
+
+document.getElementById("login").style.display = "none";
+document.getElementById("game").style.display = "block";
+
+document.getElementById("info").innerText = "ROOM: " + room.code;
+
+generateBoard();
+
+};
+
+/* BOARD */
+function generateBoard(){
+
+const el = document.getElementById("board");
+el.innerHTML = "";
+
+for(let y=0;y<10;y++){
+for(let x=0;x<10;x++){
+
+const c = document.createElement("div");
+c.className = "cell";
+
+c.onclick = () => {
+board[y][x] = board[y][x] ? 0 : 1;
+render();
+};
+
+el.appendChild(c);
+
+}}
+
+render();
+}
+
+/* RENDER */
+function render(){
+
+const cells = document.querySelectorAll(".cell");
+
+let i=0;
+
+for(let y=0;y<10;y++){
+for(let x=0;x<10;x++){
+
+cells[i].classList.toggle("ship", board[y][x] === 1);
+i++;
+
+}}
+
+}
+
+/* READY */
+document.getElementById("readyBtn").onclick = async () => {
+
+await db
+.from("players")
+.update({
+ready:true,
+board:board
+})
+.eq("id",player.id);
+
+document.getElementById("status").innerText = "READY ✔";
+};
+
+/* COLOR */
+function randomColor(){
+
+const colors = ["#4fc3f7","#ff5252","#69f0ae","#ffd54f","#b388ff"];
+
+return colors[Math.floor(Math.random()*colors.length)];
+
+}
+
+</script>
+
+</body>
+</html>
