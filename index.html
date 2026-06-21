@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STATKI TV</title>
+<title>STATKI TV DEBUG</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -42,6 +42,13 @@ border-radius:6px;
 display:flex;
 justify-content:space-between;
 }
+
+#status{
+margin-top:10px;
+font-size:12px;
+color:#aaa;
+white-space:pre-line;
+}
 </style>
 </head>
 
@@ -64,15 +71,17 @@ justify-content:space-between;
 
 <script>
 
+/* CONFIG */
 const supabaseUrl = "https://hpvyuwlrrorlswyumxec.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
 
 const db = supabase.createClient(supabaseUrl, supabaseKey);
 
+/* STATE */
 let room = null;
 let channel = null;
 
-/* STATUS */
+/* LOG */
 function log(t){
 document.getElementById("status").innerText = t;
 }
@@ -82,7 +91,7 @@ async function createRoom(){
 
 log("CREATING ROOM...");
 
-let code = "T" + Math.floor(10 + Math.random()*89);
+const code = "T" + Math.floor(10 + Math.random()*89);
 
 const {data,error} = await db
 .from("rooms")
@@ -92,19 +101,25 @@ const {data,error} = await db
 
 if(error){
 console.log(error);
-log("FAILED");
+log("ROOM ERROR");
 return null;
 }
 
+console.log("ROOM CREATED:", data);
 return data;
 }
 
 /* INIT */
 async function init(){
 
+log("INIT...");
+
 room = await createRoom();
 
-if(!room) return;
+if(!room){
+log("FAILED");
+return;
+}
 
 document.getElementById("code").innerText = room.code;
 
@@ -120,13 +135,18 @@ subscribePlayers();
 log("READY");
 }
 
-/* PLAYERS */
+/* FETCH PLAYERS DEBUG */
 async function fetchPlayers(){
 
-const {data} = await db
+console.log("FETCH PLAYERS FOR ROOM:", room.id);
+
+const {data,error} = await db
 .from("players")
 .select("*")
 .eq("room_id",room.id);
+
+console.log("PLAYERS RAW:", data);
+console.log("ERROR:", error);
 
 render(data || []);
 }
@@ -153,7 +173,7 @@ box.appendChild(div);
 
 }
 
-/* REALTIME FIX */
+/* REALTIME */
 function subscribePlayers(){
 
 if(channel) db.removeChannel(channel);
