@@ -3,20 +3,210 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STATKI TV TEST</title>
+<title>STATKI TV</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#000814;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.card{
+width:480px;
+background:rgba(255,255,255,0.05);
+padding:20px;
+border-radius:15px;
+text-align:center;
+}
+
+#code{
+font-size:60px;
+font-weight:900;
+color:#4fc3f7;
+}
+
+.player{
+padding:6px;
+margin:5px 0;
+background:rgba(255,255,255,0.08);
+border-radius:6px;
+display:flex;
+justify-content:space-between;
+}
+
+#status{
+margin-top:10px;
+font-size:12px;
+color:#aaa;
+white-space:pre-line;
+}
+</style>
 </head>
 
-<body style="background:#000;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;">
+<body>
 
-<h2>STATKI TEST</h2>
+<div class="card">
 
-<div id="status">INIT...</div>
+<h2>⚓ STATKI TV</h2>
+
+<div id="code">---</div>
+
+<div id="qrcode"></div>
+
+<h3>Gracze</h3>
+<div id="players"></div>
+
+<div id="status">INIT</div>
+
+</div>
 
 <script>
 
-console.log("JS STARTED");
+console.log("BOOT START");
 
-document.getElementById("status").innerText = "JS OK";
+/* CONFIG */
+const supabaseUrl = "https://hpvyuwlrrorlswyumxec.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
+
+const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* STATE */
+let room = null;
+let channel = null;
+
+/* LOG */
+function log(t){
+document.getElementById("status").innerText = t;
+console.log(t);
+}
+
+/* CREATE ROOM */
+async function createRoom(){
+
+log("CREATING ROOM...");
+
+const code = "T" + Math.floor(10 + Math.random()*89);
+
+const {data,error} = await db
+.from("rooms")
+.insert([{code, status:"waiting"}])
+.select()
+.single();
+
+if(error){
+console.log(error);
+log("ROOM ERROR");
+return null;
+}
+
+console.log("ROOM CREATED:", data);
+return data;
+}
+
+/* FETCH PLAYERS */
+async function fetchPlayers(){
+
+if(!room){
+console.log("NO ROOM YET");
+return;
+}
+
+console.log("FETCH PLAYERS:", room.id);
+
+const {data,error} = await db
+.from("players")
+.select("*")
+.eq("room_id",room.id);
+
+if(error){
+console.log("PLAYERS ERROR:", error);
+return;
+}
+
+render(data || []);
+}
+
+/* RENDER */
+function render(players){
+
+const box = document.getElementById("players");
+box.innerHTML = "";
+
+players.forEach(p => {
+
+const div = document.createElement("div");
+div.className = "player";
+
+div.innerHTML = `
+<span>${p.nick}</span>
+<span>${p.ready ? "READY" : "WAIT"}</span>
+`;
+
+box.appendChild(div);
+
+});
+
+}
+
+/* REALTIME */
+function subscribePlayers(){
+
+if(channel) db.removeChannel(channel);
+
+channel = db.channel("room-"+room.id)
+.on("postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"players",
+filter:"room_id=eq."+room.id
+},
+(payload) => {
+console.log("REALTIME EVENT:", payload);
+fetchPlayers();
+}
+)
+.subscribe();
+
+fetchPlayers();
+}
+
+/* INIT */
+async function init(){
+
+log("INIT...");
+
+room = await createRoom();
+
+if(!room){
+log("FAILED");
+return;
+}
+
+document.getElementById("code").innerText = room.code;
+
+/* QR */
+new QRCode(document.getElementById("qrcode"),{
+text: window.location.origin + "/player.html?room=" + room.code,
+width:160,
+height:160
+});
+
+subscribePlayers();
+
+log("READY");
+}
+
+init();
 
 </script>
 
