@@ -3,13 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STATKI SAFE DEBUG</title>
-
-<script>
-window.onerror = function(msg, src, line){
-document.body.innerHTML += "<pre style='color:red'>JS ERROR: "+msg+" @"+line+"</pre>";
-};
-</script>
+<title>STATKI TV</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -17,76 +11,187 @@ document.body.innerHTML += "<pre style='color:red'>JS ERROR: "+msg+" @"+line+"</
 <style>
 body{
 margin:0;
-background:#000;
-color:#0f0;
-font-family:monospace;
-padding:10px;
+font-family:Arial;
+background:radial-gradient(circle at top,#0d1b2a,#000814);
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
-.box{
-padding:10px;
-border:1px solid #0f0;
-margin-bottom:10px;
+.card{
+width:480px;
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(79,195,247,0.2);
+padding:20px;
+border-radius:15px;
+text-align:center;
+backdrop-filter:blur(10px);
+}
+
+#code{
+font-size:70px;
+font-weight:900;
+color:#4fc3f7;
+letter-spacing:4px;
+}
+
+.player{
+padding:6px;
+margin:5px 0;
+background:rgba(255,255,255,0.08);
+border-radius:6px;
+display:flex;
+justify-content:space-between;
+}
+
+#status{
+margin-top:10px;
+font-size:12px;
+color:#aaa;
 }
 </style>
 </head>
 
 <body>
 
-<div class="box" id="status">INIT...</div>
-<div class="box" id="log"></div>
+<div class="card">
+
+<h2>⚓ STATKI TV</h2>
+
+<div id="code">---</div>
+
+<div id="qrcode"></div>
+
+<h3>Gracze</h3>
+<div id="players"></div>
+
+<div id="status">INIT</div>
+
+</div>
 
 <script>
-
-function log(t){
-console.log(t);
-document.getElementById("log").innerHTML += t + "<br>";
-document.getElementById("status").innerText = t;
-}
-
-log("BOOT START");
-
-/* CHECK LIBS */
-log("supabase = " + typeof supabase);
-log("QRCode = " + typeof QRCode);
 
 /* CONFIG */
 const supabaseUrl = "https://hpvyuwlrrorlswyumxec.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
 
-let db = null;
+const db = supabase.createClient(supabaseUrl, supabaseKey);
 
-try{
-db = supabase.createClient(supabaseUrl, supabaseKey);
-log("SUPABASE INIT OK");
-}catch(e){
-log("SUPABASE ERROR: " + e.message);
+/* STATE */
+let room = null;
+let channel = null;
+
+/* LOG */
+function log(t){
+document.getElementById("status").innerText = t;
 }
 
-/* TEST ROOM */
-async function test(){
-
-if(!db){
-log("NO DB");
-return;
-}
+/* CREATE ROOM */
+async function createRoom(){
 
 log("CREATING ROOM...");
 
+const code = "T" + Math.floor(10 + Math.random()*89);
+
 const {data,error} = await db
 .from("rooms")
-.select("*")
-.limit(1);
+.insert([{code, status:"waiting"}])
+.select()
+.single();
 
 if(error){
-log("ROOM ERROR: " + JSON.stringify(error));
+console.log(error);
+log("ROOM ERROR");
+return null;
+}
+
+return data;
+}
+
+/* INIT */
+async function init(){
+
+room = await createRoom();
+
+if(!room) return;
+
+document.getElementById("code").innerText = room.code;
+
+/* QR */
+new QRCode(document.getElementById("qrcode"),{
+text: window.location.origin + "/player.html?room=" + room.code,
+width:160,
+height:160
+});
+
+subscribePlayers();
+
+log("READY");
+}
+
+/* FETCH PLAYERS */
+async function fetchPlayers(){
+
+const {data,error} = await db
+.from("players")
+.select("*")
+.eq("room_id",room.id);
+
+if(error){
+console.log(error);
 return;
 }
 
-log("ROOM SELECT OK");
+render(data || []);
 }
 
-test();
+/* RENDER */
+function render(players){
+
+const box = document.getElementById("players");
+box.innerHTML = "";
+
+players.forEach(p => {
+
+const div = document.createElement("div");
+div.className = "player";
+
+div.innerHTML = `
+<span>${p.nick}</span>
+<span>${p.ready ? "READY" : "WAIT"}</span>
+`;
+
+box.appendChild(div);
+
+});
+
+}
+
+/* REALTIME */
+function subscribePlayers(){
+
+if(channel) db.removeChannel(channel);
+
+channel = db.channel("room-"+room.id)
+.on("postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"players",
+filter:"room_id=eq."+room.id
+},
+(payload) => {
+fetchPlayers();
+}
+)
+.subscribe();
+
+fetchPlayers();
+}
+
+init();
 
 </script>
 
