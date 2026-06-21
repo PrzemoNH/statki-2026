@@ -11,18 +11,26 @@
 body{
 margin:0;
 font-family:Arial;
-background:#0a1628;
+background:#000814;
 color:white;
 display:flex;
-flex-direction:column;
+justify-content:center;
 align-items:center;
+height:100vh;
+}
+
+.card{
+width:420px;
+background:rgba(255,255,255,0.05);
 padding:20px;
+border-radius:15px;
+text-align:center;
 }
 
 input,button{
-padding:12px;
-width:280px;
-margin:6px;
+width:100%;
+padding:10px;
+margin-top:10px;
 border-radius:8px;
 border:none;
 }
@@ -33,168 +41,150 @@ font-weight:bold;
 cursor:pointer;
 }
 
-#game{
-display:none;
-margin-top:20px;
-}
-
-#board{
-display:grid;
-grid-template-columns:repeat(10,28px);
-gap:2px;
+#players{
 margin-top:15px;
+text-align:left;
 }
 
-.cell{
-width:28px;
-height:28px;
-background:#1b3b5c;
-}
-
-.ship{
-background:#4fc3f7;
-}
-
-#status{
-margin-top:10px;
-color:#aaa;
-font-size:13px;
+.player{
+padding:6px;
+margin:5px 0;
+background:rgba(255,255,255,0.08);
+border-radius:6px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>⚓ PLAYER</h2>
+<div class="card">
 
-<div id="login">
-<input id="roomCode" placeholder="ROOM CODE">
-<input id="nick" placeholder="NICK">
-<button id="join">JOIN GAME</button>
-</div>
+<h2>PLAYER</h2>
 
-<div id="game">
+<input id="nick" placeholder="Twój nick">
 
-<h3 id="info"></h3>
+<input id="room" placeholder="Kod pokoju">
 
-<div id="board"></div>
+<button onclick="join()">DOŁĄCZ</button>
 
-<button id="readyBtn">READY</button>
+<div id="status">INIT</div>
 
-<div id="status">---</div>
+<div id="players"></div>
 
 </div>
 
 <script>
 
-const supabaseUrl = "https://phwoggxmdmtycvyrcyba.supabase.co";
+/* CONFIG */
+const supabaseUrl = "https://hpvyuwlrrorlswyumxec.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
 
 const db = supabase.createClient(supabaseUrl, supabaseKey);
 
-let room = null;
-let player = null;
+/* STATE */
+let roomData = null;
+let channel = null;
 
-let board = Array.from({length:10},()=>Array(10).fill(0));
+/* STATUS */
+function log(t){
+document.getElementById("status").innerText = t;
+}
 
-/* JOIN */
-document.getElementById("join").onclick = async () => {
+/* JOIN ROOM */
+async function join(){
 
-const code = document.getElementById("roomCode").value.trim().toUpperCase();
-const nick = document.getElementById("nick").value || "Player";
+const nick = document.getElementById("nick").value;
+const code = document.getElementById("room").value;
 
-const {data:roomData} = await db
+if(!nick || !code){
+log("BRAK DANYCH");
+return;
+}
+
+log("SZUKAM POKOJU...");
+
+const {data, error} = await db
 .from("rooms")
 .select("*")
-.eq("code",code)
+.eq("code", code)
 .single();
 
-room = roomData;
+if(error){
+log("ROOM NIE ISTNIEJE");
+return;
+}
 
-/* CREATE PLAYER */
-const {data:p} = await db
+roomData = data;
+
+log("DOŁĄCZANIE...");
+
+const {error: insErr} = await db
 .from("players")
 .insert([{
-room_id: room.id,
-nick,
-color: randomColor(),
-ready:false
-}])
-.select()
-.single();
+room_id: roomData.id,
+nick: nick,
+ready: false,
+color: "#4fc3f7"
+}]);
 
-player = p;
+if(insErr){
+console.log(insErr);
+log("BŁĄD JOIN");
+return;
+}
 
-document.getElementById("login").style.display = "none";
-document.getElementById("game").style.display = "block";
+log("POŁĄCZONO");
 
-document.getElementById("info").innerText = "ROOM: " + room.code;
+subscribe();
+}
 
-generateBoard();
+/* REALTIME */
+function subscribe(){
 
-};
+if(channel) db.removeChannel(channel);
 
-/* BOARD */
-function generateBoard(){
+channel = db.channel("players-"+roomData.id)
+.on("postgres_changes",
+{
+event:"*",
+schema:"public",
+table:"players",
+filter:"room_id=eq."+roomData.id
+},
+fetchPlayers
+)
+.subscribe();
 
-const el = document.getElementById("board");
-el.innerHTML = "";
+fetchPlayers();
+}
 
-for(let y=0;y<10;y++){
-for(let x=0;x<10;x++){
+/* FETCH */
+async function fetchPlayers(){
 
-const c = document.createElement("div");
-c.className = "cell";
+const {data} = await db
+.from("players")
+.select("*")
+.eq("room_id", roomData.id);
 
-c.onclick = () => {
-board[y][x] = board[y][x] ? 0 : 1;
-render();
-};
-
-el.appendChild(c);
-
-}}
-
-render();
+render(data || []);
 }
 
 /* RENDER */
-function render(){
+function render(players){
 
-const cells = document.querySelectorAll(".cell");
+const box = document.getElementById("players");
+box.innerHTML = "";
 
-let i=0;
+players.forEach(p => {
 
-for(let y=0;y<10;y++){
-for(let x=0;x<10;x++){
+const div = document.createElement("div");
+div.className = "player";
 
-cells[i].classList.toggle("ship", board[y][x] === 1);
-i++;
+div.innerHTML = `${p.nick} - ${p.ready ? "READY" : "WAIT"}`;
 
-}}
+box.appendChild(div);
 
-}
-
-/* READY */
-document.getElementById("readyBtn").onclick = async () => {
-
-await db
-.from("players")
-.update({
-ready:true,
-board:board
-})
-.eq("id",player.id);
-
-document.getElementById("status").innerText = "READY ✔";
-};
-
-/* COLOR */
-function randomColor(){
-
-const colors = ["#4fc3f7","#ff5252","#69f0ae","#ffd54f","#b388ff"];
-
-return colors[Math.floor(Math.random()*colors.length)];
+});
 
 }
 
