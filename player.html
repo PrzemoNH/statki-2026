@@ -1,63 +1,44 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>STATKI PLAYER DEBUG</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PLAYER</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body{
-margin:0;
-font-family:Arial;
-background:#000814;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
+  margin:0;
+  font-family:Arial;
+  background: radial-gradient(circle, #0d1b2a, #000814);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
 .card{
-width:420px;
-background:rgba(255,255,255,0.05);
-padding:20px;
-border-radius:15px;
-text-align:center;
+  width:420px;
+  max-width:90%;
+  background:rgba(255,255,255,0.05);
+  padding:20px;
+  border-radius:15px;
+  border:1px solid rgba(79,195,247,0.2);
 }
 
 input,button{
-width:100%;
-padding:10px;
-margin-top:10px;
-border-radius:8px;
-border:none;
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
 }
 
 button{
-background:#4fc3f7;
-font-weight:bold;
-cursor:pointer;
-}
-
-#status{
-margin-top:10px;
-font-size:12px;
-color:#aaa;
-white-space:pre-line;
-}
-
-#players{
-margin-top:10px;
-text-align:left;
-}
-
-.player{
-padding:6px;
-margin:5px 0;
-background:rgba(255,255,255,0.08);
-border-radius:6px;
+  background:#4fc3f7;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -65,123 +46,81 @@ border-radius:6px;
 <body>
 
 <div class="card">
+  <h2>PLAYER</h2>
 
-<h2>PLAYER DEBUG</h2>
+  <input id="nick" placeholder="Nick">
+  <input id="room" placeholder="Kod (np. T12)">
+  <button onclick="join()">JOIN</button>
 
-<input id="nick" placeholder="Nick">
-<input id="room" placeholder="Kod pokoju">
-
-<button onclick="join()">JOIN</button>
-
-<div id="status">INIT</div>
-
-<div id="players"></div>
-
+  <div id="status">---</div>
+  <div id="players"></div>
 </div>
 
 <script>
+const SUPABASE_URL = "https://YOUR_SUPABASE_URL.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
 
-console.log("PLAYER BOOT");
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* CONFIG */
-const supabaseUrl = "https://hpvyuwlrrorlswyumxec.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhwdnl1d2xycm9ybHN3eXVteGVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NzI2MjMsImV4cCI6MjA5NzU0ODYyM30.qZ8rtkAZd1AuIAUGNcJ4e-S3a0ZqSmqdTAA4GhSqeTQ";
+let roomId;
 
-const db = supabase.createClient(supabaseUrl, supabaseKey);
+function log(t){ document.getElementById("status").innerText = t; }
 
-/* STATE */
-let roomData = null;
-
-/* LOG */
-function log(t){
-console.log(t);
-document.getElementById("status").innerText = t;
-}
-
-/* JOIN DEBUG */
 async function join(){
+  const nick = document.getElementById("nick").value.trim();
+  const code = document.getElementById("room").value.trim().toUpperCase();
 
-const nick = document.getElementById("nick").value;
-const code = document.getElementById("room").value;
+  const { data: room } = await db
+    .from("rooms")
+    .select("id")
+    .eq("code", code)
+    .maybeSingle();
 
-log("JOIN START");
+  if(!room){
+    log("Brak pokoju");
+    return;
+  }
 
-const {data: room, error: roomErr} = await db
-.from("rooms")
-.select("*")
-.eq("code", code)
-.single();
+  roomId = room.id;
 
-console.log("ROOM:", room);
-console.log("ROOM ERR:", roomErr);
+  const { data: exists } = await db
+    .from("players")
+    .select("id")
+    .eq("room_id", roomId)
+    .eq("nick", nick);
 
-if(roomErr || !room){
-log("ROOM NOT FOUND");
-return;
+  if(exists?.length){
+    log("Nick zajęty");
+    return;
+  }
+
+  await db.from("players").insert([{
+    room_id: roomId,
+    nick,
+    ready:false,
+    color:"#4fc3f7"
+  }]);
+
+  log("OK joined");
+
+  fetchPlayers();
 }
 
-roomData = room;
-
-log("ROOM OK -> INSERT PLAYER");
-
-const {data, error} = await db
-.from("players")
-.insert([{
-room_id: room.id,
-nick: nick,
-ready: false,
-color: "#4fc3f7"
-}])
-.select();
-
-console.log("INSERT DATA:", data);
-console.log("INSERT ERROR:", error);
-
-if(error){
-log("JOIN FAILED");
-return;
-}
-
-log("JOIN OK");
-
-fetchPlayers();
-}
-
-/* FETCH */
 async function fetchPlayers(){
+  const { data } = await db
+    .from("players")
+    .select("*")
+    .eq("room_id", roomId);
 
-if(!roomData) return;
+  const box = document.getElementById("players");
+  box.innerHTML = "";
 
-const {data} = await db
-.from("players")
-.select("*")
-.eq("room_id", roomData.id);
-
-render(data || []);
+  (data || []).forEach(p=>{
+    const div = document.createElement("div");
+    div.innerHTML = `${p.nick} - ${p.ready?"READY":"WAIT"}`;
+    box.appendChild(div);
+  });
 }
-
-/* RENDER */
-function render(players){
-
-const box = document.getElementById("players");
-box.innerHTML = "";
-
-players.forEach(p => {
-
-const div = document.createElement("div");
-div.className = "player";
-
-div.innerHTML = `
-<span>${p.nick}</span>
-<span>${p.ready ? "READY" : "WAIT"}</span>
-`;
-
-box.appendChild(div);
-
-});
-
-}
-
 </script>
 
 </body>
