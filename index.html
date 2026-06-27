@@ -7,17 +7,53 @@
   <style>
     body {
       background: #0a0a1a;
-      color: #00ff88;
+      color: #ffffff;
       font-family: monospace;
       padding: 20px;
     }
-    h1 { color: #ffffff; }
+    h1 { color: #00ff88; font-size: 2em; }
+    button {
+      padding: 12px 24px;
+      background: #00ff88;
+      color: #0a0a1a;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:disabled { background: #444; color: #888; cursor: not-allowed; }
+    #roomBox {
+      display: none;
+      margin-top: 24px;
+      padding: 20px;
+      border: 2px solid #00ff88;
+      border-radius: 10px;
+    }
+    #roomCode {
+      font-size: 3em;
+      color: #00ff88;
+      letter-spacing: 8px;
+      font-weight: bold;
+    }
+    #playerList {
+      margin-top: 16px;
+      min-height: 40px;
+    }
+    .player-item {
+      padding: 8px 12px;
+      margin: 6px 0;
+      border-radius: 6px;
+      font-size: 1.1em;
+    }
     #debug {
+      margin-top: 24px;
+      padding: 12px;
       background: #111;
-      border: 1px solid #00ff88;
-      padding: 15px;
-      margin-top: 20px;
+      border: 1px solid #333;
       border-radius: 8px;
+      font-size: 0.85em;
     }
     .ok  { color: #00ff88; }
     .err { color: #ff4444; }
@@ -26,53 +62,22 @@
 </head>
 <body>
 
-<h1>Statki 2026 — v0.0.1</h1>
-<div id="debug">
-  <p class="inf">⏳ Ładowanie systemu...</p>
+<h1>⚓ Statki 2026</h1>
+<p style="color:#888">Panel hosta — v0.0.1</p>
+
+<button id="btnCreate">UTWÓRZ POKÓJ</button>
+
+<div id="roomBox">
+  <p style="color:#888">Kod pokoju:</p>
+  <div id="roomCode">-----</div>
+  <p style="color:#888; margin-top:16px">Gracze w pokoju:</p>
+  <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
 </div>
+
+<div id="debug"></div>
 
 <script>
   const CONFIG = {
     VERSION: '0.0.1',
     SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
-  };
-</script>
-
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-  const debug = document.getElementById('debug');
-
-  function log(msg, type = 'inf') {
-    const p = document.createElement('p');
-    p.className = type;
-    p.textContent = msg;
-    debug.appendChild(p);
-  }
-
-  debug.innerHTML = '';
-  log('🔧 CONFIG załadowany — wersja ' + CONFIG.VERSION, 'ok');
-
-  try {
-    const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-    log('✅ Supabase — klient utworzony', 'ok');
-
-    const { data, error } = await supabase.from('rooms').select('count');
-    if (error) throw error;
-
-    log('✅ Supabase — połączenie z bazą działa', 'ok');
-    log('✅ Tabela rooms — dostępna', 'ok');
-    const { data: data2, error: error2 } = await supabase.from('players').select('count'); if (error2) throw error2;
-    log('✅ Tabela players — dostępna', 'ok');
-
-  } catch (err) {
-    log('❌ Błąd: ' + err.message, 'err');
-  }
-
-  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'inf');
-  log('✔ System gotowy', 'ok');
-</script>
-
-</body>
-</html>
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
