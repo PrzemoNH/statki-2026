@@ -144,13 +144,13 @@
       log('✅ Pokój utworzony: ' + room.code, 'ok');
 
       supabase
-        .channel('players-' + room.code)
-        .on('postgres_changes', {
+         .channel('players-' + room.code)
+          .on('postgres_changes', {
           event: '*',
           schema: 'public',
-          table: 'players',
-          filter: 'room_code=eq.' + room.code
-        }, async () => {
+           table: 'players'
+           }, async () => {
+
           const { data: players } = await supabase
             .from('players')
             .select('*')
