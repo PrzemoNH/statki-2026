@@ -5,56 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Statki 2026 — Host</title>
   <style>
-    body {
-      background: #0a0a1a;
-      color: #ffffff;
-      font-family: monospace;
-      padding: 20px;
-    }
+    body { background: #0a0a1a; color: #ffffff; font-family: monospace; padding: 20px; }
     h1 { color: #00ff88; font-size: 2em; }
-    button {
-      padding: 12px 24px;
-      background: #00ff88;
-      color: #0a0a1a;
-      font-size: 18px;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
+    button { padding: 12px 24px; background: #00ff88; color: #0a0a1a; font-size: 18px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px; }
     button:disabled { background: #444; color: #888; cursor: not-allowed; }
-    #roomBox {
-      display: none;
-      margin-top: 24px;
-      padding: 20px;
-      border: 2px solid #00ff88;
-      border-radius: 10px;
-    }
-    #roomCode {
-      font-size: 3em;
-      color: #00ff88;
-      letter-spacing: 8px;
-      font-weight: bold;
-    }
-    #playerList {
-      margin-top: 16px;
-      min-height: 40px;
-    }
-    .player-item {
-      padding: 8px 12px;
-      margin: 6px 0;
-      border-radius: 6px;
-      font-size: 1.1em;
-    }
-    #debug {
-      margin-top: 24px;
-      padding: 12px;
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      font-size: 0.85em;
-    }
+    #roomBox { display: none; margin-top: 24px; padding: 20px; border: 2px solid #00ff88; border-radius: 10px; }
+    #roomCode { font-size: 3em; color: #00ff88; letter-spacing: 8px; font-weight: bold; }
+    #playerList { margin-top: 16px; min-height: 40px; }
+    .player-item { padding: 8px 12px; margin: 6px 0; border-radius: 6px; font-size: 1.1em; }
+    #debug { margin-top: 24px; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; font-size: 0.85em; }
     .ok  { color: #00ff88; }
     .err { color: #ff4444; }
     .inf { color: #ffaa00; }
@@ -74,10 +33,144 @@
   <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
 </div>
 
-<div id="debug"></div>
+<div id="debug"><p class="inf">⏳ Ładowanie skryptów...</p></div>
 
 <script>
   const CONFIG = {
     VERSION: '0.0.1',
     SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
+  };
+
+  window.onerror = function(msg, src, line) {
+    document.getElementById('debug').innerHTML += '<p class="err">❌ JS: ' + msg + ' (linia ' + line + ')</p>';
+  };
+</script>
+
+<script type="module">
+  const debugDiv = document.getElementById('debug');
+  debugDiv.innerHTML = '';
+
+  function log(msg, type = 'inf') {
+    const p = document.createElement('p');
+    p.className = type;
+    p.textContent = msg;
+    debugDiv.appendChild(p);
+  }
+
+  log('🔧 Ładuję Supabase...', 'inf');
+
+  let supabase;
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    log('✅ Supabase załadowany', 'ok');
+  } catch (err) {
+    log('❌ Błąd ładowania Supabase: ' + err.message, 'err');
+  }
+
+  function generateCode() {
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const digits = '0123456789';
+    let code = '';
+    for (let i = 0; i < 3; i++) code += letters[Math.floor(Math.random() * letters.length)];
+    for (let i = 0; i < 2; i++) code += digits[Math.floor(Math.random() * digits.length)];
+    return code;
+  }
+
+  function generateHostId() {
+    let id = localStorage.getItem('host_id');
+    if (!id) {
+      id = 'host_' + Math.random().toString(36).substr(2, 12);
+      localStorage.setItem('host_id', id);
+    }
+    return id;
+  }
+
+  function renderPlayers(players) {
+    const list = document.getElementById('playerList');
+    if (!players.length) {
+      list.innerHTML = '<p class="inf">Czekam na graczy...</p>';
+      return;
+    }
+    list.innerHTML = players.map(p =>
+      `<div class="player-item" style="background:${p.color}22; border-left: 4px solid ${p.color}">
+        <span style="color:${p.color}">●</span> ${p.name}
+      </div>`
+    ).join('');
+  }
+
+  document.getElementById('btnCreate').addEventListener('click', async () => {
+    log('🖱️ Przycisk kliknięty', 'inf');
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+
+    if (!supabase) {
+      log('❌ Supabase niedostępny', 'err');
+      btn.disabled = false;
+      return;
+    }
+
+    log('⏳ Tworzę pokój...', 'inf');
+
+    try {
+      const hostId = generateHostId();
+      let code;
+      let attempts = 0;
+
+      while (attempts < 10) {
+        code = generateCode();
+        const { data } = await supabase
+          .from('rooms')
+          .select('code')
+          .eq('code', code)
+          .single();
+        if (!data) break;
+        attempts++;
+      }
+
+      log('📝 Kod wygenerowany: ' + code, 'inf');
+
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .insert({ code, host_id: hostId, status: 'waiting', player_count: 0 })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      document.getElementById('roomCode').textContent = room.code;
+      document.getElementById('roomBox').style.display = 'block';
+      log('✅ Pokój utworzony: ' + room.code, 'ok');
+
+      supabase
+        .channel('players-' + room.code)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'players',
+          filter: 'room_code=eq.' + room.code
+        }, async () => {
+          const { data: players } = await supabase
+            .from('players')
+            .select('*')
+            .eq('room_code', room.code)
+            .order('joined_at', { ascending: true });
+          renderPlayers(players || []);
+          log('🔄 Graczy: ' + (players?.length || 0), 'inf');
+        })
+        .subscribe((status) => {
+          log('📡 Realtime: ' + status, status === 'SUBSCRIBED' ? 'ok' : 'inf');
+        });
+
+    } catch (err) {
+      log('❌ ' + err.message, 'err');
+      btn.disabled = false;
+    }
+  });
+
+  log('✅ System gotowy — kliknij przycisk', 'ok');
+</script>
+
+</body>
+</html>
