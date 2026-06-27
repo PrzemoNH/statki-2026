@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statki 2026 — Gracz</title>
+  <style>
+    body {
+      background: #0a0a1a;
+      color: #ffffff;
+      font-family: monospace;
+      padding: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    h1 { color: #00ff88; }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      background: #111;
+      border: 1px solid #00ff88;
+      color: #fff;
+      font-size: 18px;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      background: #00ff88;
+      color: #0a0a1a;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 6px;
+      min-height: 40px;
+    }
+    .ok  { color: #00ff88; }
+    .err { color: #ff4444; }
+    .inf { color: #ffaa00; }
+  </style>
+</head>
+<body>
+
+<h1>⚓ Statki 2026</h1>
+<p>Dołącz do gry</p>
+
+<input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5">
+<input id="inputName" type="text" placeholder="Twój nick" maxlength="16">
+<button id="btnJoin">DOŁĄCZ</button>
+
+<div id="status"></div>
+
+<script>
+  const CONFIG = {
+    SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
+  };
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+  const COLORS = ['#ff4444','#4488ff','#ffaa00','#aa44ff'];
+
+  function generateDeviceId() {
+    let id = localStorage.getItem('device_id');
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).substr(2, 12);
+      localStorage.setItem('device_id', id);
+    }
+    return id;
+  }
+
+  function log(msg, type = 'inf') {
+    const div = document.getElementById('status');
+    div.innerHTML = `<p class="${type}">${msg}</p>`;
+  }
+
+  document.getElementById('btnJoin').addEventListener('click', async () => {
+    const code = document.getElementById('inputCode').value.trim().toUpperCase();
+    const name = document.getElementById('inputName').value.trim();
+    const btn = document.getElementById('btnJoin');
+
+    if (!code || code.length !== 5) return log('❌ Wpisz poprawny kod pokoju (5 znaków)', 'err');
+    if (!name || name.length < 2) return log('❌ Nick musi mieć min. 2 znaki', 'err');
+
+    btn.disabled = true;
+    log('⏳ Łączenie...', 'inf');
+
+    try {
+      const { data: room, error: roomErr } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', code)
+        .single();
+
+      if (roomErr || !room) throw new Error('Nie znaleziono pokoju: ' + code);
+      if (room.status !== 'waiting') throw new Error('Gra już się rozpoczęła');
+
+      const deviceId = generateDeviceId();
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+
+      const { data: existing } = await supabase
+        .from('players')
+        .select('*')
+        .eq('room_code', code)
+        .eq('device_id', deviceId)
+        .single();
+
+      let player;
+      if (existing) {
+        player = existing;
+        log('✅ Witaj z powrotem, ' + player.name + '!', 'ok');
+      } else {
+        const { count } = await supabase
+          .from('players')
+          .select('*', { count: 'exact', head: true })
+          .eq('room_code', code);
+
+        if (count >= 4) throw new Error('Pokój jest pełny (max 4 graczy)');
+
+        const { data: newPlayer, error: playerErr } = await supabase
+          .from('players')
+          .insert({ room_code: code, device_id: deviceId, name, color, status: 'waiting', is_host: false })
+          .select()
+          .single();
+
+        if (playerErr) throw playerErr;
+        player = newPlayer;
+        log('✅ Dołączono do pokoju ' + code + ' jako ' + name, 'ok');
+      }
+
+    } catch (err) {
+      log('❌ ' + err.message, 'err');
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>
