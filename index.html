@@ -13,6 +13,9 @@
     #roomCode { font-size: 3em; color: #00ff88; letter-spacing: 8px; font-weight: bold; }
     #playerList { margin-top: 16px; min-height: 40px; }
     .player-item { padding: 8px 12px; margin: 6px 0; border-radius: 6px; font-size: 1.1em; }
+    #gameInfo { margin-top: 16px; padding: 10px; background: #0a1a2a; border-radius: 6px; }
+    #btnStart { display: none; margin-top: 16px; background: #ff8800; width: 100%; padding: 16px; font-size: 1.2em; }
+    #btnStart.ready { background: #00ff88; }
     #debug { margin-top: 24px; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; font-size: 0.85em; }
     .ok  { color: #00ff88; }
     .err { color: #ff4444; }
@@ -29,17 +32,26 @@
 <div id="roomBox">
   <p style="color:#888">Kod pokoju:</p>
   <div id="roomCode">-----</div>
+
   <p style="color:#888; margin-top:16px">Gracze w pokoju:</p>
   <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
+
+  <div id="gameInfo" style="display:none">
+    <p>👥 Graczy: <span id="infoPlayers">0</span></p>
+    <p>📐 Plansza: <span id="infoBoard">-</span></p>
+  </div>
+
+  <button id="btnStart">⚠️ Potrzeba min. 2 graczy</button>
 </div>
 
-<div id="debug"><p class="inf">⏳ Ładowanie skryptów...</p></div>
+<div id="debug"></div>
 
 <script>
   const CONFIG = {
     VERSION: '0.0.1',
     SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
+    BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
   };
 
   window.onerror = function(msg, src, line) {
@@ -49,7 +61,6 @@
 
 <script type="module">
   const debugDiv = document.getElementById('debug');
-  debugDiv.innerHTML = '';
 
   function log(msg, type = 'inf') {
     const p = document.createElement('p');
@@ -87,10 +98,38 @@
     return id;
   }
 
+  function getBoardSize(playerCount) {
+    return CONFIG.BOARD_SIZES[playerCount] || 10;
+  }
+
+  function updateGameInfo(players) {
+    const count = players.length;
+    const boardSize = getBoardSize(count);
+    const btnStart = document.getElementById('btnStart');
+    const gameInfo = document.getElementById('gameInfo');
+
+    gameInfo.style.display = 'block';
+    document.getElementById('infoPlayers').textContent = count;
+    document.getElementById('infoBoard').textContent = boardSize + '×' + boardSize;
+
+    btnStart.style.display = 'block';
+
+    if (count >= 2) {
+      btnStart.textContent = '🚀 START GRY (' + count + ' graczy, ' + boardSize + '×' + boardSize + ')';
+      btnStart.classList.add('ready');
+      btnStart.disabled = false;
+    } else {
+      btnStart.textContent = '⚠️ Potrzeba min. 2 graczy';
+      btnStart.classList.remove('ready');
+      btnStart.disabled = true;
+    }
+  }
+
   function renderPlayers(players) {
     const list = document.getElementById('playerList');
     if (!players.length) {
       list.innerHTML = '<p class="inf">Czekam na graczy...</p>';
+      updateGameInfo([]);
       return;
     }
     list.innerHTML = players.map(p =>
@@ -98,10 +137,11 @@
         <span style="color:${p.color}">●</span> ${p.name}
       </div>`
     ).join('');
+    updateGameInfo(players);
   }
 
   document.getElementById('btnCreate').addEventListener('click', async () => {
-    log('🖱️ Przycisk kliknięty', 'inf');
+    log('⏳ Tworzę pokój...', 'inf');
     const btn = document.getElementById('btnCreate');
     btn.disabled = true;
 
@@ -110,8 +150,6 @@
       btn.disabled = false;
       return;
     }
-
-    log('⏳ Tworzę pokój...', 'inf');
 
     try {
       const hostId = generateHostId();
@@ -129,8 +167,6 @@
         attempts++;
       }
 
-      log('📝 Kod wygenerowany: ' + code, 'inf');
-
       const { data: room, error } = await supabase
         .from('rooms')
         .insert({ code, host_id: hostId, status: 'waiting', player_count: 0 })
@@ -144,13 +180,12 @@
       log('✅ Pokój utworzony: ' + room.code, 'ok');
 
       supabase
-         .channel('players-' + room.code)
-          .on('postgres_changes', {
+        .channel('players-' + room.code)
+        .on('postgres_changes', {
           event: '*',
           schema: 'public',
-           table: 'players'
-           }, async () => {
-
+          table: 'players'
+        }, async () => {
           const { data: players } = await supabase
             .from('players')
             .select('*')
@@ -167,6 +202,12 @@
       log('❌ ' + err.message, 'err');
       btn.disabled = false;
     }
+  });
+
+  document.getElementById('btnStart').addEventListener('click', async () => {
+    log('🚀 Start gry kliknięty!', 'inf');
+    // Etap 4 — tu uruchomimy generowanie planszy
+    log('⏳ Etap 4 — generowanie planszy (wkrótce)', 'inf');
   });
 
   log('✅ System gotowy — kliknij przycisk', 'ok');
