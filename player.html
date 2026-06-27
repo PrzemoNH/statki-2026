@@ -5,52 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Statki 2026 — Gracz</title>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+
     body {
-      background: #0a0a1a;
-      color: #ffffff;
-      font-family: monospace;
-      padding: 20px;
-      max-width: 400px;
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #12213a, #070b14 60%);
+      color: #eaf2ff;
+      padding: 24px;
+      max-width: 480px;
       margin: 0 auto;
     }
-    h1 { color: #00ff88; }
+
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      filter: blur(120px);
+      z-index: -1;
+      opacity: 0.25;
+    }
+
+    body::before {
+      background: #00ff99;
+      top: -100px;
+      left: -120px;
+    }
+
+    body::after {
+      background: #3b82f6;
+      bottom: -120px;
+      right: -120px;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      color: #00ffb3;
+    }
+
+    h1 + p {
+      color: #9fb0c8;
+      margin-bottom: 24px;
+    }
+
     input {
       width: 100%;
-      padding: 10px;
+      padding: 14px 16px;
       margin: 8px 0;
-      background: #111;
-      border: 1px solid #00ff88;
-      color: #fff;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #eaf2ff;
       font-size: 18px;
-      border-radius: 6px;
-      box-sizing: border-box;
+      border-radius: 12px;
+      outline: none;
+      transition: 0.2s;
+      backdrop-filter: blur(8px);
     }
+
+    input:focus {
+      border-color: #00ffb3;
+      background: rgba(0,255,179,0.05);
+      box-shadow: 0 0 0 3px rgba(0,255,179,0.1);
+    }
+
+    input::placeholder {
+      color: #4a6080;
+    }
+
     button {
       width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      background: #00ff88;
-      color: #0a0a1a;
+      padding: 16px;
+      margin-top: 14px;
+      background: linear-gradient(135deg, #00ff99, #00c2ff);
+      color: #06121f;
       font-size: 18px;
-      font-weight: bold;
+      font-weight: 700;
       border: none;
-      border-radius: 6px;
+      border-radius: 12px;
       cursor: pointer;
+      transition: 0.25s ease;
+      box-shadow: 0 10px 30px rgba(0,255,153,0.2);
     }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 40px rgba(0,255,153,0.35);
+    }
+
     button:disabled {
-      background: #444;
-      color: #888;
+      background: #1a2233;
+      color: #445;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      border: 1px solid #2b3b55;
     }
+
     #status {
-      margin-top: 16px;
-      padding: 10px;
-      border-radius: 6px;
-      min-height: 40px;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      min-height: 48px;
+      font-size: 15px;
     }
-    .ok  { color: #00ff88; }
-    .err { color: #ff4444; }
-    .inf { color: #ffaa00; }
+
+    .ok  { color: #00ff99; }
+    .err { color: #ff4d4d; }
+    .inf { color: #ffd166; }
   </style>
 </head>
 <body>
@@ -58,8 +129,8 @@
 <h1>⚓ Statki 2026</h1>
 <p>Dołącz do gry</p>
 
-<input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5">
-<input id="inputName" type="text" placeholder="Twój nick" maxlength="16">
+<input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
+<input id="inputName" type="text" placeholder="Twój nick" maxlength="16" autocomplete="off">
 <button id="btnJoin">DOŁĄCZ</button>
 
 <div id="status"></div>
