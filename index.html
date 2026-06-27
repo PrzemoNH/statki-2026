@@ -1,218 +1,334 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Statki 2026 — Host</title>
-  <style>
-    body { background: #0a0a1a; color: #ffffff; font-family: monospace; padding: 20px; }
-    h1 { color: #00ff88; font-size: 2em; }
-    button { padding: 12px 24px; background: #00ff88; color: #0a0a1a; font-size: 18px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px; }
-    button:disabled { background: #444; color: #888; cursor: not-allowed; }
-    #roomBox { display: none; margin-top: 24px; padding: 20px; border: 2px solid #00ff88; border-radius: 10px; }
-    #roomCode { font-size: 3em; color: #00ff88; letter-spacing: 8px; font-weight: bold; }
-    #playerList { margin-top: 16px; min-height: 40px; }
-    .player-item { padding: 8px 12px; margin: 6px 0; border-radius: 6px; font-size: 1.1em; }
-    #gameInfo { margin-top: 16px; padding: 10px; background: #0a1a2a; border-radius: 6px; }
-    #btnStart { display: none; margin-top: 16px; width: 100%; padding: 16px; font-size: 1.2em; background: #444; color: #888; }
-    #btnStart.ready { background: #00ff88; color: #0a0a1a; }
-    #debug { margin-top: 24px; padding: 12px; background: #111; border: 1px solid #333; border-radius: 8px; font-size: 0.85em; }
-    .ok  { color: #00ff88; }
-    .err { color: #ff4444; }
-    .inf { color: #ffaa00; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statki 2026 — Host</title>
+
+<style>
+/* ========== BASE ========== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #12213a, #070b14 60%);
+  color: #eaf2ff;
+  padding: 24px;
+  overflow-x: hidden;
+}
+
+/* subtle glowing background blobs */
+body::before, body::after {
+  content: "";
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: -1;
+  opacity: 0.25;
+}
+
+body::before {
+  background: #00ff99;
+  top: -100px;
+  left: -120px;
+}
+
+body::after {
+  background: #3b82f6;
+  bottom: -120px;
+  right: -120px;
+}
+
+h1 {
+  font-size: 2.4rem;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  color: #00ffb3;
+}
+
+p {
+  color: #9fb0c8;
+}
+
+/* ========== BUTTONS ========== */
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+#btnCreate {
+  margin-top: 18px;
+  background: linear-gradient(135deg, #00ff99, #00c2ff);
+  color: #06121f;
+  font-size: 16px;
+  box-shadow: 0 10px 30px rgba(0,255,153,0.2);
+}
+
+#btnCreate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(0,255,153,0.35);
+}
+
+/* start button */
+#btnStart {
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px;
+  font-size: 18px;
+  background: #1a2233;
+  color: #667;
+  border: 1px solid #2b3b55;
+  transition: 0.3s;
+}
+
+#btnStart.ready {
+  background: linear-gradient(135deg, #00ff99, #00c2ff);
+  color: #06121f;
+  box-shadow: 0 0 25px rgba(0,255,153,0.25);
+}
+
+/* ========== CARD ========== */
+#roomBox {
+  display: none;
+  margin-top: 26px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+/* ROOM CODE */
+#roomCode {
+  font-size: 2.6rem;
+  letter-spacing: 10px;
+  color: #00ffb3;
+  font-weight: 800;
+  margin: 10px 0 20px;
+  text-shadow: 0 0 20px rgba(0,255,179,0.3);
+}
+
+/* PLAYERS */
+#playerList {
+  margin-top: 10px;
+}
+
+.player-item {
+  padding: 12px 14px;
+  margin: 8px 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: 0.2s;
+}
+
+.player-item:hover {
+  transform: translateX(4px);
+  background: rgba(255,255,255,0.08);
+}
+
+/* GAME INFO */
+#gameInfo {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+#gameInfo p {
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* DEBUG */
+#debug {
+  margin-top: 22px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 12px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.ok { color: #00ff99; }
+.err { color: #ff4d4d; }
+.inf { color: #ffd166; }
+
+/* SMALL ANIMATION */
+.player-item {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  body { padding: 16px; }
+  #roomCode { font-size: 2rem; letter-spacing: 6px; }
+}
+</style>
 </head>
+
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p style="color:#888">Panel hosta — v0.0.1</p>
+<p>Panel hosta — v0.0.1</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
 <div id="roomBox">
-  <p style="color:#888">Kod pokoju:</p>
+  <p>Kod pokoju:</p>
   <div id="roomCode">-----</div>
-  <p style="color:#888; margin-top:16px">Gracze w pokoju:</p>
+
+  <p>Gracze:</p>
   <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
+
   <div id="gameInfo" style="display:none">
-    <p>👥 Graczy: <span id="infoPlayers">0</span></p>
-    <p>📐 Plansza: <span id="infoBoard">-</span></p>
+    <p>👥 <span id="infoPlayers">0</span></p>
+    <p>📐 <span id="infoBoard">-</span></p>
   </div>
+
   <button id="btnStart" disabled>⚠️ Potrzeba min. 2 graczy</button>
 </div>
 
 <div id="debug"></div>
 
 <script>
-  const CONFIG = {
-    VERSION: '0.0.1',
-    SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
-    BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
-  };
-  window.onerror = function(msg, src, line) {
-    document.getElementById('debug').innerHTML += '<p class="err">❌ JS: ' + msg + ' (linia ' + line + ')</p>';
-  };
+const CONFIG = {
+  VERSION: '0.0.1',
+  SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
+  BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
+};
+
+window.onerror = (msg, src, line) => {
+  document.getElementById('debug').innerHTML += `<div class="err">JS: ${msg} (${line})</div>`;
+};
 </script>
 
 <script type="module">
-  const debugDiv = document.getElementById('debug');
+const debug = document.getElementById('debug');
 
-  function log(msg, type = 'inf') {
-    const p = document.createElement('p');
-    p.className = type;
-    p.textContent = msg;
-    debugDiv.appendChild(p);
-  }
+function log(msg, type='inf') {
+  const div = document.createElement('div');
+  div.className = type;
+  div.textContent = msg;
+  debug.appendChild(div);
+}
 
-  let supabase;
-  try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-    log('✅ Supabase załadowany', 'ok');
-  } catch (err) {
-    log('❌ Błąd ładowania Supabase: ' + err.message, 'err');
-  }
+let supabase;
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
-  function generateCode() {
-    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const digits = '0123456789';
-    let code = '';
-    for (let i = 0; i < 3; i++) code += letters[Math.floor(Math.random() * letters.length)];
-    for (let i = 0; i < 2; i++) code += digits[Math.floor(Math.random() * digits.length)];
-    return code;
-  }
+let currentRoomCode = null;
 
-  function generateHostId() {
-    let id = localStorage.getItem('host_id');
-    if (!id) {
-      id = 'host_' + Math.random().toString(36).substr(2, 12);
-      localStorage.setItem('host_id', id);
-    }
-    return id;
-  }
+function generateCode() {
+  const l = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const d = '0123456789';
+  return l[Math.random()*l.length|0] + l[Math.random()*l.length|0] + l[Math.random()*l.length|0]
+       + d[Math.random()*d.length|0] + d[Math.random()*d.length|0];
+}
 
-  function updateGameInfo(players) {
-    const count = players.length;
-    const boardSize = CONFIG.BOARD_SIZES[count] || 10;
-    const btnStart = document.getElementById('btnStart');
-    const gameInfo = document.getElementById('gameInfo');
+function updateGameInfo(players) {
+  const count = players.length;
+  const size = CONFIG.BOARD_SIZES[count] || 10;
 
-    gameInfo.style.display = 'block';
-    document.getElementById('infoPlayers').textContent = count;
-    document.getElementById('infoBoard').textContent = boardSize + '×' + boardSize;
-    btnStart.style.display = 'block';
+  document.getElementById('gameInfo').style.display = 'grid';
+  document.getElementById('infoPlayers').textContent = count;
+  document.getElementById('infoBoard').textContent = size + '×' + size;
 
-    if (count >= 2) {
-      btnStart.textContent = '🚀 START GRY (' + count + ' graczy, ' + boardSize + '×' + boardSize + ')';
-      btnStart.classList.add('ready');
-      btnStart.disabled = false;
-    } else {
-      btnStart.textContent = '⚠️ Potrzeba min. 2 graczy';
-      btnStart.classList.remove('ready');
-      btnStart.disabled = true;
-    }
-  }
+  const btn = document.getElementById('btnStart');
+  btn.style.display = 'block';
 
-  function renderPlayers(players) {
-    const list = document.getElementById('playerList');
-    if (!players || !players.length) {
-      list.innerHTML = '<p class="inf">Czekam na graczy...</p>';
-      updateGameInfo([]);
-      return;
-    }
-    list.innerHTML = players.map(p =>
-      `<div class="player-item" style="background:${p.color}22; border-left: 4px solid ${p.color}">
-        <span style="color:${p.color}">●</span> ${p.name}
-      </div>`
-    ).join('');
-    updateGameInfo(players);
-  }
-
-  let currentRoomCode = null;
-  let pollInterval = null;
-
-  async function fetchPlayers() {
-    if (!currentRoomCode) return;
-    const { data: players } = await supabase
-      .from('players')
-      .select('*')
-      .eq('room_code', currentRoomCode)
-      .order('joined_at', { ascending: true });
-    renderPlayers(players || []);
-  }
-
-  document.getElementById('btnCreate').addEventListener('click', async () => {
-    const btn = document.getElementById('btnCreate');
+  if (count >= 2) {
+    btn.disabled = false;
+    btn.classList.add('ready');
+    btn.textContent = `START (${count} graczy)`;
+  } else {
     btn.disabled = true;
-    log('⏳ Tworzę pokój...', 'inf');
+    btn.classList.remove('ready');
+    btn.textContent = '⚠️ Min. 2 graczy';
+  }
+}
 
-    if (!supabase) {
-      log('❌ Supabase niedostępny', 'err');
-      btn.disabled = false;
-      return;
-    }
+function render(players) {
+  const box = document.getElementById('playerList');
 
-    try {
-      const hostId = generateHostId();
-      let code;
-      let attempts = 0;
+  if (!players?.length) {
+    box.innerHTML = '<p class="inf">Czekam na graczy...</p>';
+    return;
+  }
 
-      while (attempts < 10) {
-        code = generateCode();
-        const { data } = await supabase
-          .from('rooms')
-          .select('code')
-          .eq('code', code)
-          .single();
-        if (!data) break;
-        attempts++;
-      }
+  box.innerHTML = players.map(p => `
+    <div class="player-item">
+      <span style="color:${p.color}">●</span>
+      <b>${p.name}</b>
+    </div>
+  `).join('');
 
-      const { data: room, error } = await supabase
-        .from('rooms')
-        .insert({ code, host_id: hostId, status: 'waiting', player_count: 0 })
-        .select()
-        .single();
+  updateGameInfo(players);
+}
 
-      if (error) throw error;
+async function fetchPlayers() {
+  if (!currentRoomCode) return;
 
-      currentRoomCode = room.code;
-      document.getElementById('roomCode').textContent = room.code;
-      document.getElementById('roomBox').style.display = 'block';
-      log('✅ Pokój utworzony: ' + room.code, 'ok');
+  const { data } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', currentRoomCode);
 
-      // Realtime
-      supabase
-        .channel('players-' + room.code)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'players'
-        }, async () => {
-          await fetchPlayers();
-          log('🔄 Realtime update', 'inf');
-        })
-        .subscribe((status) => {
-          log('📡 Realtime: ' + status, status === 'SUBSCRIBED' ? 'ok' : 'inf');
-        });
+  render(data || []);
+}
 
-      // Polling co 3 sekundy jako backup
-      pollInterval = setInterval(async () => {
-        await fetchPlayers();
-      }, 3000);
+document.getElementById('btnCreate').onclick = async () => {
+  log('Tworzę pokój...', 'inf');
 
-    } catch (err) {
-      log('❌ ' + err.message, 'err');
-      btn.disabled = false;
-    }
-  });
+  const hostId = localStorage.getItem('host') || (localStorage.setItem('host', Math.random().toString(36)), localStorage.getItem('host'));
 
-  document.getElementById('btnStart').addEventListener('click', async () => {
-    log('🚀 Start gry kliknięty — Etap 4 wkrótce', 'inf');
-  });
+  let code = generateCode();
 
-  log('✅ System gotowy', 'ok');
+  const { data: room } = await supabase
+    .from('rooms')
+    .insert({ code, host_id: hostId, status: 'waiting' })
+    .select()
+    .single();
+
+  currentRoomCode = room.code;
+
+  document.getElementById('roomCode').textContent = room.code;
+  document.getElementById('roomBox').style.display = 'block';
+
+  log('Pokój: ' + room.code, 'ok');
+
+  supabase.channel('players')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, fetchPlayers)
+    .subscribe();
+
+  setInterval(fetchPlayers, 3000);
+};
+
+log('System gotowy', 'ok');
 </script>
 
 </body>
