@@ -185,7 +185,13 @@
       if (room.status !== 'waiting') throw new Error('Gra już się rozpoczęła');
 
       const deviceId = generateDeviceId();
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+const { count: playerCount } = await supabase
+  .from('players')
+  .select('*', { count: 'exact', head: true })
+  .eq('room_code', code);
+
+const color = COLORS[playerCount % COLORS.length];
+
 
       const { data: existing } = await supabase
         .from('players')
