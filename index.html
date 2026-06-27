@@ -63,6 +63,8 @@
 
     log('✅ Supabase — połączenie z bazą działa', 'ok');
     log('✅ Tabela rooms — dostępna', 'ok');
+    const { data: data2, error: error2 } = await supabase.from('players').select('count'); if (error2) throw error2;
+    log('✅ Tabela players — dostępna', 'ok');
 
   } catch (err) {
     log('❌ Błąd: ' + err.message, 'err');
