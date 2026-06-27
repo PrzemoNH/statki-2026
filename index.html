@@ -22,7 +22,6 @@ body {
   overflow-x: hidden;
 }
 
-/* subtle glowing background blobs */
 body::before, body::after {
   content: "";
   position: fixed;
@@ -57,7 +56,6 @@ p {
   color: #9fb0c8;
 }
 
-/* ========== BUTTONS ========== */
 button {
   border: none;
   cursor: pointer;
@@ -80,7 +78,6 @@ button {
   box-shadow: 0 15px 40px rgba(0,255,153,0.35);
 }
 
-/* start button */
 #btnStart {
   width: 100%;
   margin-top: 18px;
@@ -98,7 +95,6 @@ button {
   box-shadow: 0 0 25px rgba(0,255,153,0.25);
 }
 
-/* ========== CARD ========== */
 #roomBox {
   display: none;
   margin-top: 26px;
@@ -110,7 +106,6 @@ button {
   box-shadow: 0 20px 60px rgba(0,0,0,0.4);
 }
 
-/* ROOM CODE */
 #roomCode {
   font-size: 2.6rem;
   letter-spacing: 10px;
@@ -120,7 +115,6 @@ button {
   text-shadow: 0 0 20px rgba(0,255,179,0.3);
 }
 
-/* PLAYERS */
 #playerList {
   margin-top: 10px;
 }
@@ -134,6 +128,7 @@ button {
   align-items: center;
   gap: 10px;
   transition: 0.2s;
+  animation: fadeIn 0.3s ease;
 }
 
 .player-item:hover {
@@ -141,7 +136,6 @@ button {
   background: rgba(255,255,255,0.08);
 }
 
-/* GAME INFO */
 #gameInfo {
   margin-top: 16px;
   display: grid;
@@ -156,7 +150,6 @@ button {
   text-align: center;
 }
 
-/* DEBUG */
 #debug {
   margin-top: 22px;
   padding: 14px;
@@ -168,21 +161,15 @@ button {
   overflow: auto;
 }
 
-.ok { color: #00ff99; }
+.ok  { color: #00ff99; }
 .err { color: #ff4d4d; }
 .inf { color: #ffd166; }
 
-/* SMALL ANIMATION */
-.player-item {
-  animation: fadeIn 0.3s ease;
-}
-
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* RESPONSIVE */
 @media (max-width: 600px) {
   body { padding: 16px; }
   #roomCode { font-size: 2rem; letter-spacing: 6px; }
@@ -213,6 +200,10 @@ button {
 </div>
 
 <div id="debug"></div>
+
+<script src="js/game/board.js"></script>
+<script src="js/game/rules.js"></script>
+<script src="js/game/placement.js"></script>
 
 <script>
 const CONFIG = {
@@ -292,12 +283,10 @@ function render(players) {
 
 async function fetchPlayers() {
   if (!currentRoomCode) return;
-
   const { data } = await supabase
     .from('players')
     .select('*')
     .eq('room_code', currentRoomCode);
-
   render(data || []);
 }
 
@@ -305,8 +294,7 @@ document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
 
   const hostId = localStorage.getItem('host') || (localStorage.setItem('host', Math.random().toString(36)), localStorage.getItem('host'));
-
-  let code = generateCode();
+  const code = generateCode();
 
   const { data: room } = await supabase
     .from('rooms')
@@ -315,10 +303,8 @@ document.getElementById('btnCreate').onclick = async () => {
     .single();
 
   currentRoomCode = room.code;
-
   document.getElementById('roomCode').textContent = room.code;
   document.getElementById('roomBox').style.display = 'block';
-
   log('Pokój: ' + room.code, 'ok');
 
   supabase.channel('players')
@@ -326,6 +312,25 @@ document.getElementById('btnCreate').onclick = async () => {
     .subscribe();
 
   setInterval(fetchPlayers, 3000);
+};
+
+document.getElementById('btnStart').onclick = async () => {
+  log('🚀 Generuję plansze...', 'inf');
+
+  const { data: players } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', currentRoomCode);
+
+  const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
+  log('📐 Rozmiar planszy: ' + boardSize + '×' + boardSize, 'inf');
+
+  for (const player of players) {
+    const { grid, ships } = PLACEMENT.generate(boardSize);
+    log('✅ ' + player.name + ' — statków: ' + ships.length, 'ok');
+  }
+
+  log('🎯 Wszystkie plansze wygenerowane!', 'ok');
 };
 
 log('System gotowy', 'ok');
