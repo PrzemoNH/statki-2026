@@ -2,10 +2,75 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Statki 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statki 2026 — Host</title>
+  <style>
+    body {
+      background: #0a0a1a;
+      color: #00ff88;
+      font-family: monospace;
+      padding: 20px;
+    }
+    h1 { color: #ffffff; }
+    #debug {
+      background: #111;
+      border: 1px solid #00ff88;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+    .ok  { color: #00ff88; }
+    .err { color: #ff4444; }
+    .inf { color: #ffaa00; }
+  </style>
 </head>
 <body>
-  <h1>Statki 2026 — v0.0.1</h1>
-  <p>Projekt działa poprawnie.</p>
+
+<h1>Statki 2026 — v0.0.1</h1>
+<div id="debug">
+  <p class="inf">⏳ Ładowanie systemu...</p>
+</div>
+
+<script>
+  const CONFIG = {
+    VERSION: '0.0.1',
+    SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzow-_cEJeBn9OsTcrGIE'
+  };
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const debug = document.getElementById('debug');
+
+  function log(msg, type = 'inf') {
+    const p = document.createElement('p');
+    p.className = type;
+    p.textContent = msg;
+    debug.appendChild(p);
+  }
+
+  debug.innerHTML = '';
+  log('🔧 CONFIG załadowany — wersja ' + CONFIG.VERSION, 'ok');
+
+  try {
+    const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    log('✅ Supabase — klient utworzony', 'ok');
+
+    const { data, error } = await supabase.from('rooms').select('count');
+    if (error) throw error;
+
+    log('✅ Supabase — połączenie z bazą działa', 'ok');
+    log('✅ Tabela rooms — dostępna', 'ok');
+
+  } catch (err) {
+    log('❌ Błąd: ' + err.message, 'err');
+  }
+
+  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'inf');
+  log('✔ System gotowy', 'ok');
+</script>
+
 </body>
 </html>
