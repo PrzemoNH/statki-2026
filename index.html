@@ -306,8 +306,13 @@ document.getElementById('btnCreate').onclick = async () => {
 
   currentRoomCode = room.code;
   document.getElementById('roomCode').textContent = room.code;
-  document.getElementById('roomBox').style.display = 'block';
-  log('Pokój: ' + room.code, 'ok');
+document.getElementById('roomBox').style.display = 'block';
+log('Pokój: ' + room.code, 'ok');
+
+const playerUrl = window.location.origin + '/player.html?code=' + room.code;
+const canvas = document.getElementById('qrCanvas');
+canvas.style.display = 'block';
+QRCode.toCanvas(canvas, playerUrl, { width: 180, margin: 1, color: { dark: '#00ffb3', light: '#070b14' }});
 
   supabase.channel('players')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, fetchPlayers)
