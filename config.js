@@ -12,3 +12,4 @@ const CONFIG = {
   MAX_PLAYERS: 4,
   MIN_PLAYERS: 2
 };
+
