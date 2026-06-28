@@ -61,4 +61,128 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 const CONFIG = {
   VERSION: '0.0.1',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiw
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
+  BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
+};
+window.onerror = (msg, src, line) => {
+  document.getElementById('debug').innerHTML += `<div class="err">JS: ${msg} (${line})</div>`;
+};
+</script>
+
+<script type="module">
+const debug = document.getElementById('debug');
+
+function log(msg, type='inf') {
+  const d = document.createElement('div');
+  d.className = type;
+  d.textContent = msg;
+  debug.appendChild(d);
+  debug.scrollTop = debug.scrollHeight;
+}
+
+let supabase;
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+let roomCode = null;
+
+function generateCode() {
+  const l = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const d = '0123456789';
+  return l[Math.random()*l.length|0] + l[Math.random()*l.length|0] + l[Math.random()*l.length|0]
+       + d[Math.random()*d.length|0] + d[Math.random()*d.length|0];
+}
+
+function updateGameInfo(players) {
+  const count = players.length;
+  const size = CONFIG.BOARD_SIZES[count] || 10;
+  document.getElementById('gameInfo').style.display = 'grid';
+  document.getElementById('infoPlayers').textContent = count;
+  document.getElementById('infoBoard').textContent = size + '×' + size;
+  const btn = document.getElementById('btnStart');
+  btn.style.display = 'block';
+  if (count >= 2) {
+    btn.disabled = false;
+    btn.classList.add('ready');
+    btn.textContent = `START (${count} graczy)`;
+  } else {
+    btn.disabled = true;
+    btn.classList.remove('ready');
+    btn.textContent = '⚠️ Min. 2 graczy';
+  }
+}
+
+function render(players) {
+  const box = document.getElementById('playerList');
+  if (!players?.length) {
+    box.innerHTML = '<p class="inf">Czekam na graczy...</p>';
+    updateGameInfo([]);
+    return;
+  }
+  box.innerHTML = players.map(p => `
+    <div class="player-item">
+      <span style="color:${p.color}">●</span>
+      <b>${p.name}</b>
+    </div>
+  `).join('');
+  updateGameInfo(players);
+}
+
+async function fetchPlayers() {
+  if (!roomCode) return;
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', roomCode)
+    .order('joined_at', { ascending: true });
+  if (error) { log('❌ ' + error.message, 'err'); return; }
+  render(data || []);
+}
+
+document.getElementById('btnCreate').onclick = async () => {
+  log('Tworzę pokój...', 'inf');
+  const hostId = localStorage.getItem('host') || (localStorage.setItem('host', Math.random().toString(36)), localStorage.getItem('host'));
+  const code = generateCode();
+
+  const { data: room, error } = await supabase
+    .from('rooms')
+    .insert({ code, host_id: hostId, status: 'waiting' })
+    .select()
+    .single();
+
+  if (error) { log('❌ ' + error.message, 'err'); return; }
+
+  roomCode = room.code;
+  document.getElementById('roomCode').textContent = room.code;
+  document.getElementById('roomBox').style.display = 'block';
+  log('✅ Pokój: ' + room.code, 'ok');
+
+  const playerUrl = window.location.origin + '/player.html?code=' + room.code;
+  const canvas = document.getElementById('qrCanvas');
+  canvas.style.display = 'block';
+  QRCode.toCanvas(canvas, playerUrl, { width: 180, margin: 1, color: { dark: '#00ffb3', light: '#070b14' }});
+
+  setInterval(fetchPlayers, 3000);
+  log('✅ System gotowy', 'ok');
+};
+
+document.getElementById('btnStart').onclick = async () => {
+  log('🚀 Generuję plansze...', 'inf');
+  const { data: players } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', roomCode);
+  const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
+  log('📐 Plansza: ' + boardSize + '×' + boardSize, 'inf');
+  for (const player of players) {
+    const { ships } = PLACEMENT.generate(boardSize);
+    log('✅ ' + player.name + ' — statków: ' + ships.length, 'ok');
+  }
+  log('🎯 Plansze gotowe!', 'ok');
+};
+
+log('✅ System gotowy', 'ok');
+</script>
+
+</body>
+</html>
