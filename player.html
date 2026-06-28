@@ -20,16 +20,12 @@ button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,1
 button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #2b3b55; }
 #status { margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); min-height: 48px; font-size: 15px; }
 .ok { color: #00ff99; } .err { color: #ff4d4d; } .inf { color: #ffd166; }
-
-/* EKRAN OCZEKIWANIA */
 #waitingScreen { display: none; text-align: center; margin-top: 40px; }
 #waitingScreen h2 { color: #00ffb3; font-size: 1.6rem; margin-bottom: 12px; }
 .pulse { display: inline-block; width: 16px; height: 16px; background: #00ffb3; border-radius: 50%; animation: pulse 1.4s infinite; margin: 0 4px; }
 .pulse:nth-child(2) { animation-delay: 0.2s; }
 .pulse:nth-child(3) { animation-delay: 0.4s; }
 @keyframes pulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
-
-/* PLANSZA */
 #boardScreen { display: none; margin-top: 20px; text-align: center; }
 #boardScreen h2 { color: #00ffb3; margin-bottom: 8px; font-size: 1.4rem; text-align: left; }
 #boardInfo { color: #9fb0c8; font-size: 13px; margin-top: 4px; text-align: left; display: block; }
@@ -74,7 +70,7 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 <script>
 const CONFIG = {
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3bniqVgSXV5c7lqYWFw6tGmCZZUbEm-qNzg'
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
 };
 </script>
 
@@ -86,6 +82,7 @@ const COLORS = ['#ff4444','#4488ff','#ffaa00','#aa44ff'];
 let myPlayerId = null;
 let myColor = null;
 let boardHidden = false;
+let pollingInterval = null;
 
 const urlParams = new URLSearchParams(window.location.search);
 const codeFromUrl = urlParams.get('code');
@@ -104,27 +101,21 @@ function log(msg, type='inf') {
 
 function renderBoard(board, playerColor) {
   const grid = document.getElementById('boardGrid');
-  
-  // Oblicz rozmiar planszy z długości tablicy
   const boardSize = Math.sqrt(board.length);
-  
   grid.style.gridTemplateColumns = `repeat(${boardSize}, 32px)`;
   grid.innerHTML = '';
   
-  // Iteruj po tablicy 1D
   for (let i = 0; i < board.length; i++) {
     const cell = board[i];
     const cellDiv = document.createElement('div');
     cellDiv.className = 'cell';
     
-    // Jeśli pole zawiera statek gracza
     if (cell.state === 'ship') {
       cellDiv.classList.add('ship');
       cellDiv.style.borderColor = playerColor;
-      cellDiv.style.background = `${playerColor}40`; // Przezroczysty kolor gracza
+      cellDiv.style.background = `${playerColor}40`;
     }
     
-    // Jeśli pole zostało trafione
     if (cell.hit) {
       cellDiv.classList.add('hit');
     }
@@ -137,7 +128,6 @@ function showBoard(player) {
   document.getElementById('waitingScreen').style.display = 'none';
   document.getElementById('boardScreen').style.display = 'block';
   
-  // Deserializuj planszę jeśli jest stringiem
   const boardData = typeof player.board === 'string' ? JSON.parse(player.board) : player.board;
   const shipsData = typeof player.ships === 'string' ? JSON.parse(player.ships) : player.ships;
   
@@ -146,6 +136,16 @@ function showBoard(player) {
     `Statków: ${shipsData?.length || 0} | Plansza: ${boardSize}×${boardSize}`;
   
   renderBoard(boardData, player.color);
+  
+  if (pollingInterval) clearInterval(pollingInterval);
+}
+
+function startPolling() {
+  pollingInterval = setInterval(async () => {
+    const { data: updated } = await supabase
+      .from('players').select('*').eq('id', myPlayerId).single();
+    if (updated?.board) showBoard(updated);
+  }, 3000);
 }
 
 document.getElementById('btnHide').onclick = () => {
@@ -198,15 +198,9 @@ document.getElementById('btnJoin').addEventListener('click', async () => {
     document.getElementById('waitingScreen').style.display = 'block';
     document.getElementById('waitingName').textContent = '👤 ' + player.name;
 
-    // Jeśli plansza już jest (gracz wrócił po starcie)
     if (player.board) { showBoard(player); return; }
 
-    // Nasłuchuj na zmiany — czekaj na planszę
-    setInterval(async () => {
-      const { data: updated } = await supabase
-        .from('players').select('*').eq('id', myPlayerId).single();
-      if (updated?.board) showBoard(updated);
-    }, 3000);
+    startPolling();
 
   } catch (err) {
     log('❌ ' + err.message, 'err');
