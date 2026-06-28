@@ -17,8 +17,10 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #btnCreate:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
 #btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; transition: 0.3s; }
 #btnStart.ready { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; box-shadow: 0 0 25px rgba(0,255,153,0.25); }
-#roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+#roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
 #roomCode { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 20px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
+#qrContainer { margin-top: 14px; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
+#qrCanvas { border-radius: 8px; display: none; }
 #playerList { margin-top: 10px; }
 .player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; transition: 0.2s; animation: fadeIn 0.3s ease; }
 .player-item:hover { transform: translateX(4px); background: rgba(255,255,255,0.08); }
@@ -33,14 +35,16 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.0.1</p>
+<p>Panel hosta — v0.0.3</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
   <div id="roomCode">-----</div>
-  <canvas id="qrCanvas" style="margin-top:14px; border-radius:12px; display:none;"></canvas>
+  <div id="qrContainer">
+    <canvas id="qrCanvas"></canvas>
+  </div>
   <p style="margin-top:16px">Gracze:</p>
   <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
   <div id="gameInfo" style="display:none">
@@ -59,9 +63,9 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script>
 const CONFIG = {
-  VERSION: '0.0.1',
+  VERSION: '0.0.3',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3bniqVgSXV5c7lqYWFw6tGmCZZUbEm-qNzg',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
 };
 window.onerror = (msg, src, line) => {
@@ -100,7 +104,6 @@ function updateGameInfo(players) {
   document.getElementById('infoPlayers').textContent = count;
   document.getElementById('infoBoard').textContent = size + '×' + size;
   const btn = document.getElementById('btnStart');
-  btn.style.display = 'block';
   if (count >= 2) {
     btn.disabled = false;
     btn.classList.add('ready');
@@ -157,10 +160,25 @@ document.getElementById('btnCreate').onclick = async () => {
   document.getElementById('roomBox').style.display = 'block';
   log('✅ Pokój: ' + room.code, 'ok');
 
+  // Generuj QR kod
   const playerUrl = window.location.origin + '/player.html?code=' + room.code;
   const canvas = document.getElementById('qrCanvas');
-  canvas.style.display = 'block';
-  QRCode.toCanvas(canvas, playerUrl, { width: 180, margin: 1, color: { dark: '#00ffb3', light: '#070b14' }});
+  try {
+    QRCode.toCanvas(canvas, playerUrl, { 
+      width: 180, 
+      margin: 1, 
+      color: { dark: '#00ffb3', light: '#070b14' }
+    }, (err) => {
+      if (err) {
+        log('❌ Błąd QR: ' + err, 'err');
+      } else {
+        canvas.style.display = 'block';
+        log('✅ QR kod wygenerowany', 'ok');
+      }
+    });
+  } catch (e) {
+    log('❌ QR error: ' + e.message, 'err');
+  }
 };
 
 document.getElementById('btnStart').onclick = async () => {
@@ -171,19 +189,29 @@ document.getElementById('btnStart').onclick = async () => {
     .select('*')
     .eq('room_code', roomCode);
 
+  if (!players || players.length < 2) {
+    log('❌ Potrzeba min. 2 graczy', 'err');
+    return;
+  }
+
   const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
   log('📐 Plansza: ' + boardSize + '×' + boardSize, 'inf');
 
-  for (const player of players) {
-    const { grid, ships } = PLACEMENT.generate(boardSize);
+  // Generuj wspólną planszę
+  const { sharedBoard, playerBoards, playerShips } = PLACEMENT.generateSharedBoard(boardSize, players);
 
+  // Dla każdego gracza zapisz jego widok
+  for (const player of players) {
     const { error } = await supabase
       .from('players')
-      .update({ board: grid, ships: ships })
+      .update({ 
+        board: playerBoards[player.id], 
+        ships: playerShips[player.id] 
+      })
       .eq('id', player.id);
 
     if (error) { log('❌ ' + player.name + ': ' + error.message, 'err'); continue; }
-    log('✅ ' + player.name + ' — statków: ' + ships.length, 'ok');
+    log('✅ ' + player.name + ' — statków: ' + playerShips[player.id].length, 'ok');
   }
 
   await supabase
