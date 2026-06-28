@@ -129,7 +129,8 @@ function render(players) {
 }
 
 async function fetchPlayers() {
- if (!roomCode) return;
+  log('🔍 fetch: ' + roomCode, 'inf');
+  if (!roomCode) return;
  const { data, error } = await supabase
    .from('players')
    .select('*')
