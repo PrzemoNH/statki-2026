@@ -1,235 +1,190 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Statki 2026 — Gracz</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statki 2026 — Gracz</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+body { min-height: 100vh; background: radial-gradient(circle at top, #12213a, #070b14 60%); color: #eaf2ff; padding: 24px; max-width: 480px; margin: 0 auto; }
+body::before, body::after { content: ""; position: fixed; width: 400px; height: 400px; border-radius: 50%; filter: blur(120px); z-index: -1; opacity: 0.25; }
+body::before { background: #00ff99; top: -100px; left: -120px; }
+body::after { background: #3b82f6; bottom: -120px; right: -120px; }
+h1 { font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 6px; color: #00ffb3; }
+h1 + p { color: #9fb0c8; margin-bottom: 24px; }
+input { width: 100%; padding: 14px 16px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #eaf2ff; font-size: 18px; border-radius: 12px; outline: none; transition: 0.2s; }
+input:focus { border-color: #00ffb3; background: rgba(0,255,179,0.05); box-shadow: 0 0 0 3px rgba(0,255,179,0.1); }
+input::placeholder { color: #4a6080; }
+button { width: 100%; padding: 16px; margin-top: 14px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 18px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: 0.25s ease; box-shadow: 0 10px 30px rgba(0,255,153,0.2); }
+button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
+button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #2b3b55; }
+#status { margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); min-height: 48px; font-size: 15px; }
+.ok { color: #00ff99; } .err { color: #ff4d4d; } .inf { color: #ffd166; }
 
-    body {
-      min-height: 100vh;
-      background: radial-gradient(circle at top, #12213a, #070b14 60%);
-      color: #eaf2ff;
-      padding: 24px;
-      max-width: 480px;
-      margin: 0 auto;
-    }
+/* EKRAN OCZEKIWANIA */
+#waitingScreen { display: none; text-align: center; margin-top: 40px; }
+#waitingScreen h2 { color: #00ffb3; font-size: 1.6rem; margin-bottom: 12px; }
+.pulse { display: inline-block; width: 16px; height: 16px; background: #00ffb3; border-radius: 50%; animation: pulse 1.4s infinite; margin: 0 4px; }
+.pulse:nth-child(2) { animation-delay: 0.2s; }
+.pulse:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-    body::before, body::after {
-      content: "";
-      position: fixed;
-      width: 400px;
-      height: 400px;
-      border-radius: 50%;
-      filter: blur(120px);
-      z-index: -1;
-      opacity: 0.25;
-    }
-
-    body::before {
-      background: #00ff99;
-      top: -100px;
-      left: -120px;
-    }
-
-    body::after {
-      background: #3b82f6;
-      bottom: -120px;
-      right: -120px;
-    }
-
-    h1 {
-      font-size: 2.4rem;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
-      color: #00ffb3;
-    }
-
-    h1 + p {
-      color: #9fb0c8;
-      margin-bottom: 24px;
-    }
-
-    input {
-      width: 100%;
-      padding: 14px 16px;
-      margin: 8px 0;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12);
-      color: #eaf2ff;
-      font-size: 18px;
-      border-radius: 12px;
-      outline: none;
-      transition: 0.2s;
-      backdrop-filter: blur(8px);
-    }
-
-    input:focus {
-      border-color: #00ffb3;
-      background: rgba(0,255,179,0.05);
-      box-shadow: 0 0 0 3px rgba(0,255,179,0.1);
-    }
-
-    input::placeholder {
-      color: #4a6080;
-    }
-
-    button {
-      width: 100%;
-      padding: 16px;
-      margin-top: 14px;
-      background: linear-gradient(135deg, #00ff99, #00c2ff);
-      color: #06121f;
-      font-size: 18px;
-      font-weight: 700;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: 0.25s ease;
-      box-shadow: 0 10px 30px rgba(0,255,153,0.2);
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 15px 40px rgba(0,255,153,0.35);
-    }
-
-    button:disabled {
-      background: #1a2233;
-      color: #445;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-      border: 1px solid #2b3b55;
-    }
-
-    #status {
-      margin-top: 20px;
-      padding: 14px 16px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      min-height: 48px;
-      font-size: 15px;
-    }
-
-    .ok  { color: #00ff99; }
-    .err { color: #ff4d4d; }
-    .inf { color: #ffd166; }
-  </style>
+/* PLANSZA */
+#boardScreen { display: none; margin-top: 20px; }
+#boardScreen h2 { color: #00ffb3; margin-bottom: 8px; font-size: 1.4rem; }
+#boardGrid { display: inline-grid; gap: 2px; margin-top: 10px; }
+.cell { width: 32px; height: 32px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); transition: 0.2s; }
+.cell.ship { background: rgba(0,255,179,0.25); border-color: #00ffb3; }
+#btnHide { margin-top: 16px; background: rgba(255,255,255,0.08); color: #eaf2ff; border: 1px solid rgba(255,255,255,0.15); font-size: 15px; padding: 12px; }
+#btnHide:hover { background: rgba(255,255,255,0.14); transform: none; box-shadow: none; }
+</style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
 <p>Dołącz do gry</p>
 
-<input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
-<input id="inputName" type="text" placeholder="Twój nick" maxlength="16" autocomplete="off">
-<button id="btnJoin">DOŁĄCZ</button>
+<div id="joinScreen">
+  <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
+  <input id="inputName" type="text" placeholder="Twój nick" maxlength="16" autocomplete="off">
+  <button id="btnJoin">DOŁĄCZ</button>
+  <div id="status"></div>
+</div>
 
-<div id="status"></div>
+<div id="waitingScreen">
+  <h2>Czekam na start gry</h2>
+  <p style="color:#9fb0c8; margin-bottom:24px">Host zaraz rozpocznie rozgrywkę</p>
+  <div>
+    <span class="pulse"></span>
+    <span class="pulse"></span>
+    <span class="pulse"></span>
+  </div>
+  <p id="waitingName" style="margin-top:24px; color:#00ffb3; font-size:1.1rem"></p>
+</div>
+
+<div id="boardScreen">
+  <h2>Twoja plansza</h2>
+  <p id="boardInfo" style="color:#9fb0c8; font-size:13px; margin-top:4px"></p>
+  <div id="boardGrid"></div>
+  <button id="btnHide">👁 Ukryj planszę</button>
+</div>
 
 <script>
-  const CONFIG = {
-    SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
-  };
+const CONFIG = {
+  SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE'
+};
 </script>
 
 <script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
-  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+const COLORS = ['#ff4444','#4488ff','#ffaa00','#aa44ff'];
+let myPlayerId = null;
+let boardHidden = false;
 
-  const COLORS = ['#ff4444','#4488ff','#ffaa00','#aa44ff'];
+const urlParams = new URLSearchParams(window.location.search);
+const codeFromUrl = urlParams.get('code');
+if (codeFromUrl) document.getElementById('inputCode').value = codeFromUrl.toUpperCase();
 
-  // Autowypełnienie kodu z URL (?code=ABC12)
-  const urlParams = new URLSearchParams(window.location.search);
-  const codeFromUrl = urlParams.get('code');
-  if (codeFromUrl) {
-    document.getElementById('inputCode').value = codeFromUrl.toUpperCase();
-  }
+function generateDeviceId() {
+  let id = localStorage.getItem('device_id');
+  if (!id) { id = 'dev_' + Math.random().toString(36).substr(2, 12); localStorage.setItem('device_id', id); }
+  return id;
+}
 
-  function generateDeviceId() {
-    let id = localStorage.getItem('device_id');
-    if (!id) {
-      id = 'dev_' + Math.random().toString(36).substr(2, 12);
-      localStorage.setItem('device_id', id);
+function log(msg, type='inf') {
+  const div = document.getElementById('status');
+  div.innerHTML = `<p class="${type}">${msg}</p>`;
+}
+
+function renderBoard(board) {
+  const grid = document.getElementById('boardGrid');
+  const size = board.length;
+  grid.style.gridTemplateColumns = `repeat(${size}, 32px)`;
+  grid.innerHTML = '';
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (board[r][c].state === 'ship' ? ' ship' : '');
+      grid.appendChild(cell);
     }
-    return id;
   }
+}
 
-  function log(msg, type = 'inf') {
-    const div = document.getElementById('status');
-    div.innerHTML = `<p class="${type}">${msg}</p>`;
-  }
+function showBoard(player) {
+  document.getElementById('waitingScreen').style.display = 'none';
+  document.getElementById('boardScreen').style.display = 'block';
+  document.getElementById('boardInfo').textContent =
+    'Statków: ' + player.ships.length + ' | Plansza: ' + player.board.length + '×' + player.board.length;
+  renderBoard(player.board);
+}
 
-  document.getElementById('btnJoin').addEventListener('click', async () => {
-    const code = document.getElementById('inputCode').value.trim().toUpperCase();
-    const name = document.getElementById('inputName').value.trim();
-    const btn = document.getElementById('btnJoin');
+document.getElementById('btnHide').onclick = () => {
+  boardHidden = !boardHidden;
+  document.getElementById('boardGrid').style.opacity = boardHidden ? '0' : '1';
+  document.getElementById('btnHide').textContent = boardHidden ? '👁 Pokaż planszę' : '👁 Ukryj planszę';
+};
 
-    if (!code || code.length !== 5) return log('❌ Wpisz poprawny kod pokoju (5 znaków)', 'err');
-    if (!name || name.length < 2) return log('❌ Nick musi mieć min. 2 znaki', 'err');
+document.getElementById('btnJoin').addEventListener('click', async () => {
+  const code = document.getElementById('inputCode').value.trim().toUpperCase();
+  const name = document.getElementById('inputName').value.trim();
+  const btn = document.getElementById('btnJoin');
 
-    btn.disabled = true;
-    log('⏳ Łączenie...', 'inf');
+  if (!code || code.length !== 5) return log('❌ Wpisz poprawny kod pokoju (5 znaków)', 'err');
+  if (!name || name.length < 2) return log('❌ Nick musi mieć min. 2 znaki', 'err');
 
-    try {
-      const { data: room, error: roomErr } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', code)
-        .single();
+  btn.disabled = true;
+  log('⏳ Łączenie...', 'inf');
 
-      if (roomErr || !room) throw new Error('Nie znaleziono pokoju: ' + code);
-      if (room.status !== 'waiting') throw new Error('Gra już się rozpoczęła');
+  try {
+    const { data: room, error: roomErr } = await supabase
+      .from('rooms').select('*').eq('code', code).single();
 
-      const deviceId = generateDeviceId();
+    if (roomErr || !room) throw new Error('Nie znaleziono pokoju: ' + code);
+    if (room.status === 'playing') throw new Error('Gra już się rozpoczęła');
 
-      const { data: existing } = await supabase
+    const deviceId = generateDeviceId();
+    const { data: existing } = await supabase
+      .from('players').select('*').eq('room_code', code).eq('device_id', deviceId).single();
+
+    let player;
+    if (existing) {
+      player = existing;
+    } else {
+      const { data: currentPlayers } = await supabase
+        .from('players').select('*').eq('room_code', code);
+      if (currentPlayers && currentPlayers.length >= 4) throw new Error('Pokój jest pełny (max 4 graczy)');
+      const color = COLORS[currentPlayers ? currentPlayers.length % COLORS.length : 0];
+      const { data: newPlayer, error: playerErr } = await supabase
         .from('players')
-        .select('*')
-        .eq('room_code', code)
-        .eq('device_id', deviceId)
-        .single();
-
-      let player;
-      if (existing) {
-        player = existing;
-        log('✅ Witaj z powrotem, ' + player.name + '!', 'ok');
-      } else {
-        const { data: currentPlayers } = await supabase
-          .from('players')
-          .select('*')
-          .eq('room_code', code);
-
-        if (currentPlayers && currentPlayers.length >= 4) throw new Error('Pokój jest pełny (max 4 graczy)');
-
-        const color = COLORS[currentPlayers ? currentPlayers.length % COLORS.length : 0];
-
-        const { data: newPlayer, error: playerErr } = await supabase
-          .from('players')
-          .insert({ room_code: code, device_id: deviceId, name, color, status: 'waiting', is_host: false })
-          .select()
-          .single();
-
-        if (playerErr) throw playerErr;
-        player = newPlayer;
-        log('✅ Dołączono do pokoju ' + code + ' jako ' + name, 'ok');
-      }
-
-    } catch (err) {
-      log('❌ ' + err.message, 'err');
-      btn.disabled = false;
+        .insert({ room_code: code, device_id: deviceId, name, color, status: 'waiting', is_host: false })
+        .select().single();
+      if (playerErr) throw playerErr;
+      player = newPlayer;
     }
-  });
+
+    myPlayerId = player.id;
+    document.getElementById('joinScreen').style.display = 'none';
+    document.getElementById('waitingScreen').style.display = 'block';
+    document.getElementById('waitingName').textContent = '👤 ' + player.name;
+
+    // Jeśli plansza już jest (gracz wrócił po starcie)
+    if (player.board) { showBoard(player); return; }
+
+    // Nasłuchuj na zmiany — czekaj na planszę
+    setInterval(async () => {
+      const { data: updated } = await supabase
+        .from('players').select('*').eq('id', myPlayerId).single();
+      if (updated?.board) showBoard(updated);
+    }, 3000);
+
+  } catch (err) {
+    log('❌ ' + err.message, 'err');
+    btn.disabled = false;
+  }
+});
 </script>
 
 </body>
