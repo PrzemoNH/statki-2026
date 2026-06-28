@@ -35,7 +35,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.0.3</p>
+<p>Panel hosta — v0.0.4</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -63,9 +63,9 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script>
 const CONFIG = {
-  VERSION: '0.0.3',
+  VERSION: '0.0.4',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3bniqVgSXV5c7lqYWFw6tGmCZZUbEm-qNzg',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
 };
 window.onerror = (msg, src, line) => {
@@ -75,6 +75,8 @@ window.onerror = (msg, src, line) => {
 
 <script type="module">
 const debug = document.getElementById('debug');
+let roomCode = null;
+let pollingInterval = null;
 
 function log(msg, type='inf') {
   const d = document.createElement('div');
@@ -87,8 +89,6 @@ function log(msg, type='inf') {
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 log('✅ System gotowy', 'ok');
-
-let roomCode = null;
 
 function generateCode() {
   const l = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -131,16 +131,18 @@ function render(players) {
   updateGameInfo(players);
 }
 
-setInterval(async () => {
-  if (!roomCode) return;
-  const { data, error } = await supabase
-    .from('players')
-    .select('*')
-    .eq('room_code', roomCode)
-    .order('joined_at', { ascending: true });
-  if (error) { log('❌ ' + error.message, 'err'); return; }
-  render(data || []);
-}, 3000);
+function startPolling() {
+  pollingInterval = setInterval(async () => {
+    if (!roomCode) return;
+    const { data, error } = await supabase
+      .from('players')
+      .select('*')
+      .eq('room_code', roomCode)
+      .order('joined_at', { ascending: true });
+    if (error) { log('❌ ' + error.message, 'err'); return; }
+    render(data || []);
+  }, 3000);
+}
 
 document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
@@ -160,7 +162,6 @@ document.getElementById('btnCreate').onclick = async () => {
   document.getElementById('roomBox').style.display = 'block';
   log('✅ Pokój: ' + room.code, 'ok');
 
-  // Generuj QR kod
   const playerUrl = window.location.origin + '/player.html?code=' + room.code;
   const canvas = document.getElementById('qrCanvas');
   try {
@@ -179,6 +180,8 @@ document.getElementById('btnCreate').onclick = async () => {
   } catch (e) {
     log('❌ QR error: ' + e.message, 'err');
   }
+
+  startPolling();
 };
 
 document.getElementById('btnStart').onclick = async () => {
@@ -197,10 +200,8 @@ document.getElementById('btnStart').onclick = async () => {
   const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
   log('📐 Plansza: ' + boardSize + '×' + boardSize, 'inf');
 
-  // Generuj wspólną planszę
   const { sharedBoard, playerBoards, playerShips } = PLACEMENT.generateSharedBoard(boardSize, players);
 
-  // Dla każdego gracza zapisz jego widok
   for (const player of players) {
     const { error } = await supabase
       .from('players')
