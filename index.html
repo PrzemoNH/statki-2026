@@ -128,7 +128,6 @@ function render(players) {
   updateGameInfo(players);
 }
 
-// INTERVAL NA GÓRZE — działa od startu strony
 setInterval(async () => {
   if (!roomCode) return;
   const { data, error } = await supabase
@@ -137,7 +136,6 @@ setInterval(async () => {
     .eq('room_code', roomCode)
     .order('joined_at', { ascending: true });
   if (error) { log('❌ ' + error.message, 'err'); return; }
-  log('🔍 fetch: ' + (data?.length || 0) + ' graczy', 'inf');
   render(data || []);
 }, 3000);
 
@@ -167,17 +165,33 @@ document.getElementById('btnCreate').onclick = async () => {
 
 document.getElementById('btnStart').onclick = async () => {
   log('🚀 Generuję plansze...', 'inf');
+
   const { data: players } = await supabase
     .from('players')
     .select('*')
     .eq('room_code', roomCode);
+
   const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
   log('📐 Plansza: ' + boardSize + '×' + boardSize, 'inf');
+
   for (const player of players) {
-    const { ships } = PLACEMENT.generate(boardSize);
+    const { grid, ships } = PLACEMENT.generate(boardSize);
+
+    const { error } = await supabase
+      .from('players')
+      .update({ board: grid, ships: ships })
+      .eq('id', player.id);
+
+    if (error) { log('❌ ' + player.name + ': ' + error.message, 'err'); continue; }
     log('✅ ' + player.name + ' — statków: ' + ships.length, 'ok');
   }
-  log('🎯 Plansze gotowe!', 'ok');
+
+  await supabase
+    .from('rooms')
+    .update({ status: 'playing' })
+    .eq('code', roomCode);
+
+  log('🎯 Gra rozpoczęta!', 'ok');
 };
 </script>
 
