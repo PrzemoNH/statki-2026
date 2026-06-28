@@ -22,4 +22,77 @@ button { padding: 12px 20px; background: #00ff99; color: #06121f; font-weight: 7
 
 <script>
 const SUPABASE_URL = 'https://bmnffrnwnyrqefrzrhtf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE';
+</script>
+
+<script type="module">
+const logDiv = document.getElementById('log');
+const playerDiv = document.getElementById('playerList');
+
+function log(msg, type='inf') {
+  const d = document.createElement('div');
+  d.className = type;
+  d.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+  logDiv.appendChild(d);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+log('Ładuję Supabase...', 'inf');
+
+let supabase;
+try {
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  log('✅ Supabase OK', 'ok');
+} catch(e) {
+  log('❌ Supabase błąd: ' + e.message, 'err');
+}
+
+let roomCode = null;
+
+async function fetchPlayers() {
+  log('🔍 fetchPlayers wywołana, kod: ' + roomCode, 'inf');
+  if (!roomCode) { log('⚠️ brak roomCode', 'err'); return; }
+  
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_code', roomCode);
+
+  if (error) { log('❌ błąd: ' + error.message, 'err'); return; }
+  
+  log('👥 Graczy w bazie: ' + (data?.length || 0), data?.length ? 'ok' : 'inf');
+  playerDiv.innerHTML = (data || []).map(p => `<div style="color:${p.color}">● ${p.name}</div>`).join('');
+}
+
+document.getElementById('btnCreate').onclick = async () => {
+  log('Tworzę pokój...', 'inf');
+
+  const code = 'TST' + Math.floor(Math.random()*90+10);
+  const hostId = 'host_test';
+
+  const { data: room, error } = await supabase
+    .from('rooms')
+    .insert({ code, host_id: hostId, status: 'waiting' })
+    .select()
+    .single();
+
+  if (error) { log('❌ ' + error.message, 'err'); return; }
+
+  roomCode = room.code;
+  log('✅ Pokój: ' + roomCode, 'ok');
+
+  log('Uruchamiam interval...', 'inf');
+  setInterval(() => {
+    log('⏱️ tick', 'inf');
+    fetchPlayers();
+  }, 3000);
+  
+  log('Interval uruchomiony', 'ok');
+};
+
+log('Gotowy', 'ok');
+</script>
+
+</body>
+</html>
