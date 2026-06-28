@@ -281,13 +281,15 @@ function render(players) {
 
 async function fetchPlayers() {
   if (!currentRoomCode) return;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('players')
     .select('*')
     .eq('room_code', currentRoomCode)
     .order('joined_at', { ascending: true });
+  log('🔍 fetchPlayers: ' + (data?.length || 0) + ' graczy, error: ' + (error?.message || 'brak'), 'inf');
   render(data || []);
 }
+
 
 document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
