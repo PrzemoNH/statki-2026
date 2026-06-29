@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Statki 2026 — Host</title>
+<title>Statki 2026 — Host v3</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 body { min-height: 100vh; background: radial-gradient(circle at top, #12213a, #070b14 60%); color: #eaf2ff; padding: 24px; overflow-x: hidden; }
@@ -11,72 +11,71 @@ body::before, body::after { content: ""; position: fixed; width: 400px; height: 
 body::before { background: #00ff99; top: -100px; left: -120px; }
 body::after { background: #3b82f6; bottom: -120px; right: -120px; }
 h1 { font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 6px; color: #00ffb3; }
-p { color: #9fb0c8; }
+p { color: #9fb0c8; margin-bottom: 24px; }
 button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px; font-weight: 600; transition: 0.25s ease; }
-#btnCreate { margin-top: 18px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 16px; box-shadow: 0 10px 30px rgba(0,255,153,0.2); }
+#btnCreate { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 16px; box-shadow: 0 10px 30px rgba(0,255,153,0.2); }
 #btnCreate:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
-#btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; transition: 0.3s; }
+#btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; }
 #btnStart.ready { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; box-shadow: 0 0 25px rgba(0,255,153,0.25); }
-#roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+#roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
 #roomCode { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 20px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
-#qrContainer { margin-top: 14px; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.02); }
-#qrCanvas { border-radius: 8px; display: none; }
 #playerList { margin-top: 10px; }
-.player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; transition: 0.2s; animation: fadeIn 0.3s ease; }
-.player-item:hover { transform: translateX(4px); background: rgba(255,255,255,0.08); }
-#gameInfo { margin-top: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-#gameInfo p { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; text-align: center; }
+.player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; }
 #debug { margin-top: 22px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; max-height: 180px; overflow: auto; }
 .ok { color: #00ff99; } .err { color: #ff4d4d; } .inf { color: #ffd166; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 600px) { body { padding: 16px; } #roomCode { font-size: 2rem; letter-spacing: 6px; } }
+#boardsContainer { display: none; margin-top: 26px; display: grid; gap: 20px; }
+.boardCard { padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+.boardTitle { font-size: 1.1rem; color: #00ffb3; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.colorBadge { width: 20px; height: 20px; border-radius: 50%; }
+.miniBoard { display: inline-grid; gap: 0; }
+.miniCell { width: 20px; height: 20px; background: #0a1520; border: 0.5px solid #1a2a40; }
+.miniCell.ship { background: rgba(0,255,179,0.4); border: 0.5px solid #00ffb3; }
+.miniCell.hit { background: rgba(255,77,77,0.5); border: 0.5px solid #ff4d4d; }
+.miniCell.miss { background: rgba(100,100,100,0.3); border: 0.5px solid #666; }
+.boardStats { margin-top: 8px; font-size: 12px; color: #9fb0c8; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 1200px) {
+  #boardsContainer { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1600px) {
+  #boardsContainer { grid-template-columns: repeat(4, 1fr); }
+}
 </style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.1.0</p>
+<p>Panel hosta — v0.3.0</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
   <div id="roomCode">-----</div>
-  <div id="qrContainer">
-    <canvas id="qrCanvas"></canvas>
-  </div>
   <p style="margin-top:16px">Gracze:</p>
-  <div id="playerList"><p class="inf">Czekam na graczy...</p></div>
-  <div id="gameInfo" style="display:none">
-    <p>👥 <span id="infoPlayers">0</span></p>
-    <p>📐 <span id="infoBoard">-</span></p>
-  </div>
-  <button id="btnStart" disabled>⚠️ Potrzeba min. 2 graczy</button>
+  <div id="playerList"></div>
+  <button id="btnStart" disabled>⚠️ Min. 2 graczy</button>
 </div>
 
-<div id="debug"></div>
+<div id="boardsContainer"></div>
 
-<!-- ✅ Załaduj QRCode SYNCHRONICZNIE (przed modułem) -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<div id="debug"></div>
 
 <script src="js/game/board.js"></script>
 <script src="js/game/rules.js"></script>
 <script src="js/game/placement.js"></script>
+<script src="js/game/shooter.js"></script>
 
-<script>
+<script type="module">
 const CONFIG = {
-  VERSION: '0.1.0',
+  VERSION: '0.3.0',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
 };
 
-window.onerror = (msg, src, line) => {
-  document.getElementById('debug').innerHTML += `<div class="err">JS: ${msg} (${line})</div>`;
-};
-</script>
+const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
-<script type="module">
 const debug = document.getElementById('debug');
 let roomCode = null;
 let pollingInterval = null;
@@ -89,23 +88,6 @@ function log(msg, type='inf') {
   debug.scrollTop = debug.scrollHeight;
 }
 
-async function initModule() {
-  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  
-  // ✅ QRCode załadowany synchronicznie w linii 68
-  if (window.QRCode) {
-    log('✅ QRCode załadowany', 'ok');
-  } else {
-    log('⚠️ QRCode niedostępny', 'inf');
-  }
-  
-  log('✅ System gotowy', 'ok');
-  return supabase;
-}
-
-const supabase = await initModule();
-
 function generateCode() {
   const l = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
   const d = '0123456789';
@@ -113,12 +95,57 @@ function generateCode() {
        + d[Math.random()*d.length|0] + d[Math.random()*d.length|0];
 }
 
+function renderMiniBoard(board, boardSize) {
+  const html = [];
+  for (let i = 0; i < board.length; i++) {
+    const cell = board[i];
+    let cls = 'miniCell';
+    if (cell.state === 'ship' && cell.hit) cls += ' hit';
+    else if (cell.state === 'ship') cls += ' ship';
+    else if (cell.hit) cls += ' miss';
+    html.push(`<div class="${cls}"></div>`);
+  }
+  return html.join('');
+}
+
+function renderBoards(players) {
+  const container = document.getElementById('boardsContainer');
+  if (players.length < 2 || !players[0].board) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'grid';
+  container.innerHTML = '';
+
+  const boardSize = Math.sqrt(JSON.parse(players[0].board).length);
+
+  players.forEach(player => {
+    const board = JSON.parse(player.board);
+    const sunk = SHOOTER.countSunkShips(board, boardSize);
+    const total = RULES.getTotalShipCount(boardSize);
+
+    const card = document.createElement('div');
+    card.className = 'boardCard';
+    card.innerHTML = `
+      <div class="boardTitle">
+        <div class="colorBadge" style="background: ${player.color}"></div>
+        ${player.name}
+      </div>
+      <div class="miniBoard" style="grid-template-columns: repeat(${boardSize}, 20px)">
+        ${renderMiniBoard(board, boardSize)}
+      </div>
+      <div class="boardStats">
+        <div>🎯 Zatopione: ${sunk}/${total}</div>
+        <div>⚓ Pozostało: ${total - sunk}</div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
 function updateGameInfo(players) {
   const count = players.length;
-  const size = CONFIG.BOARD_SIZES[count] || 10;
-  document.getElementById('gameInfo').style.display = 'grid';
-  document.getElementById('infoPlayers').textContent = count;
-  document.getElementById('infoBoard').textContent = size + '×' + size;
   const btn = document.getElementById('btnStart');
   if (count >= 2) {
     btn.disabled = false;
@@ -145,62 +172,31 @@ function render(players) {
     </div>
   `).join('');
   updateGameInfo(players);
+  renderBoards(players);
 }
 
 function startPolling() {
   pollingInterval = setInterval(async () => {
     if (!roomCode) return;
-    const { data, error } = await supabase
-      .from('players')
-      .select('*')
-      .eq('room_code', roomCode)
-      .order('joined_at', { ascending: true });
-    if (error) { log('❌ ' + error.message, 'err'); return; }
+    const { data } = await supabase
+      .from('players').select('*').eq('room_code', roomCode).order('joined_at', { ascending: true });
     render(data || []);
-  }, 3000);
+  }, 1000);
 }
 
 document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
-  const hostId = localStorage.getItem('host') || (localStorage.setItem('host', Math.random().toString(36)), localStorage.getItem('host'));
   const code = generateCode();
 
-  const { data: room, error } = await supabase
+  const { data: room } = await supabase
     .from('rooms')
-    .insert({ code, host_id: hostId, status: 'waiting' })
-    .select()
-    .single();
-
-  if (error) { log('❌ ' + error.message, 'err'); return; }
+    .insert({ code, status: 'waiting' })
+    .select().single();
 
   roomCode = room.code;
   document.getElementById('roomCode').textContent = room.code;
   document.getElementById('roomBox').style.display = 'block';
   log('✅ Pokój: ' + room.code, 'ok');
-
-  const playerUrl = window.location.origin + '/player.html?code=' + room.code;
-  const canvas = document.getElementById('qrCanvas');
-  
-  if (window.QRCode) {
-    try {
-      QRCode.toCanvas(canvas, playerUrl, { 
-        width: 180, 
-        margin: 1, 
-        color: { dark: '#00ffb3', light: '#070b14' }
-      }, (err) => {
-        if (err) {
-          log('❌ Błąd QR: ' + err, 'err');
-        } else {
-          canvas.style.display = 'block';
-          log('✅ QR kod wygenerowany', 'ok');
-        }
-      });
-    } catch (e) {
-      log('❌ QR error: ' + e.message, 'err');
-    }
-  } else {
-    log('⚠️ QRCode niedostępny', 'inf');
-  }
 
   startPolling();
 };
@@ -209,12 +205,10 @@ document.getElementById('btnStart').onclick = async () => {
   log('🚀 Generuję plansze...', 'inf');
 
   const { data: players } = await supabase
-    .from('players')
-    .select('*')
-    .eq('room_code', roomCode);
+    .from('players').select('*').eq('room_code', roomCode);
 
   if (!players || players.length < 2) {
-    log('❌ Potrzeba min. 2 graczy', 'err');
+    log('❌ Min. 2 graczy', 'err');
     return;
   }
 
@@ -231,29 +225,20 @@ document.getElementById('btnStart').onclick = async () => {
       
       const { error } = await supabase
         .from('players')
-        .update({ 
-          board: boardData, 
-          ships: shipsData 
-        })
+        .update({ board: boardData, ships: shipsData })
         .eq('id', player.id);
 
-      if (error) { 
-        log('❌ ' + player.name + ': ' + error.message, 'err'); 
+      if (error) {
+        log('❌ ' + player.name + ': ' + error.message, 'err');
       } else {
         successCount++;
-        log('✅ ' + player.name + ' — statków: ' + playerShips[player.id].length, 'ok');
+        log('✅ ' + player.name + ' — ' + playerShips[player.id].length + ' statków', 'ok');
       }
     }
 
     if (successCount === players.length) {
-      await supabase
-        .from('rooms')
-        .update({ status: 'playing' })
-        .eq('code', roomCode);
-
+      await supabase.from('rooms').update({ status: 'playing' }).eq('code', roomCode);
       log('🎯 Gra rozpoczęta!', 'ok');
-    } else {
-      log('❌ Nie wszystkim graczom wysłano plansze!', 'err');
     }
   } catch (e) {
     log('❌ ' + e.message, 'err');
