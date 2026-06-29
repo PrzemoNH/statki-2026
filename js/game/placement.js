@@ -45,9 +45,9 @@ const PLACEMENT = {
             maxAttempts--;
           }
 
+          // ✅ Usuń rekursję! Zamiast tego rzuć błąd
           if (!placed) {
-            console.warn(`⚠️ Brak miejsca na statek (${size}). Restartuję...`);
-            return this.generateSharedBoard(boardSize, players);
+            throw new Error(`Nie udało się umieścić statku (rozmiar ${size}) dla gracza ${player.name} na planszy ${boardSize}×${boardSize}. Brak wystarczającej przestrzeni.`);
           }
         }
       }
@@ -55,7 +55,9 @@ const PLACEMENT = {
 
     console.log('✅ Plansze wygenerowane!');
     for (const player of players) {
-      console.log(`  👤 ${player.name}: ${playerShips[player.id].length} statków`);
+      const ships = playerShips[player.id];
+      const shipCells = ships.reduce((sum, ship) => sum + ship.size, 0);
+      console.log(`  👤 ${player.name}: ${ships.length} statków | Pola: ${shipCells}`);
     }
 
     return { sharedBoard, playerBoards, playerShips };
