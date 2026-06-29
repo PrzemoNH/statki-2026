@@ -32,18 +32,14 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 .miniCell.hit { background: rgba(255,77,77,0.5); border: 0.5px solid #ff4d4d; }
 .miniCell.miss { background: rgba(100,100,100,0.3); border: 0.5px solid #666; }
 .boardStats { margin-top: 8px; font-size: 12px; color: #9fb0c8; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-@media (min-width: 1200px) {
-  #boardsContainer { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 1600px) {
-  #boardsContainer { grid-template-columns: repeat(4, 1fr); }
-}
+@media (min-width: 1200px) { #boardsContainer { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1600px) { #boardsContainer { grid-template-columns: repeat(4, 1fr); } }
 </style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.3.2</p>
+<p>Panel hosta — v0.3.3</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -66,7 +62,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.3.2',
+  VERSION: '0.3.3',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -109,13 +105,8 @@ function renderMiniBoard(board, boardSize) {
   for (let i = 0; i < board.length; i++) {
     const cell = board[i];
     let cls = 'miniCell';
-    // ✅ POKAZUJ TYLKO: trafienia i pudła, statki UKRYTE
-    if (cell.hit && cell.state === 'ship') {
-      cls += ' hit';
-    } else if (cell.hit && cell.state === 'water') {
-      cls += ' miss';
-    }
-    // Jeśli nie trafione - pusta komórka (nie pokazuj statków!)
+    if (cell.hit && cell.state === 'ship') cls += ' hit';
+    else if (cell.hit && cell.state === 'water') cls += ' miss';
     html.push(`<div class="${cls}"></div>`);
   }
   return html.join('');
@@ -131,10 +122,11 @@ function renderBoards(players) {
   container.style.display = 'grid';
   container.innerHTML = '';
 
-  const boardSize = Math.sqrt(JSON.parse(players[0].board).length);
+  const firstBoard = typeof players[0].board === 'string' ? JSON.parse(players[0].board) : players[0].board;
+  const boardSize = Math.sqrt(firstBoard.length);
 
   players.forEach(player => {
-    const board = JSON.parse(player.board);
+    const board = typeof player.board === 'string' ? JSON.parse(player.board) : player.board;
     const sunk = SHOOTER.countSunkShips(board, boardSize);
     const total = RULES.getTotalShipCount(boardSize);
 
@@ -210,10 +202,7 @@ document.getElementById('btnCreate').onclick = async () => {
       .select()
       .single();
 
-    if (error) {
-      log('❌ Błąd Supabase: ' + error.message, 'err');
-      return;
-    }
+    if (error) { log('❌ Błąd Supabase: ' + error.message, 'err'); return; }
 
     roomCode = room.code;
     document.getElementById('roomCode').textContent = room.code;
@@ -247,7 +236,7 @@ document.getElementById('btnStart').onclick = async () => {
     for (const player of players) {
       const boardData = JSON.stringify(playerBoards[player.id]);
       const shipsData = JSON.stringify(playerShips[player.id]);
-      
+
       const { error } = await supabase
         .from('players')
         .update({ board: boardData, ships: shipsData })
@@ -262,8 +251,16 @@ document.getElementById('btnStart').onclick = async () => {
     }
 
     if (successCount === players.length) {
-      await supabase.from('rooms').update({ status: 'playing' }).eq('code', roomCode);
-      log('🎯 Gra rozpoczęta!', 'ok');
+      const turnOrder = players.map(p => p.id).sort(() => Math.random() - 0.5);
+      const firstPlayer = turnOrder[0];
+
+      await supabase.from('rooms').update({
+        status: 'playing',
+        current_turn: firstPlayer,
+        turn_order: turnOrder
+      }).eq('code', roomCode);
+
+      log('🎯 Gra rozpoczęta! Pierwszy ruch: ' + players.find(p => p.id === firstPlayer)?.name, 'ok');
     }
   } catch (e) {
     log('❌ ' + e.message, 'err');
