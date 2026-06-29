@@ -12,9 +12,10 @@ const RULES = {
    */
   FLEETS: {
     10: [
-      { size: 3, count: 1 }, // 1x trzymasztowiec (3 pola)
-      { size: 2, count: 2 }, // 2x dwumasztowce (4 pola)
-      { size: 1, count: 3 }  // 3x jednomasztowce (3 pola) = 10 pół TOTAL
+      { size: 4, count: 1 }, // 1x czteromasztowiec (4 pola)
+      { size: 3, count: 2 }, // 2x trzymasztowiec (6 pól)
+      { size: 2, count: 3 }, // 3x dwumasztowiec (6 pól)
+      { size: 1, count: 4 }  // 4x jednomasztowiec (4 pola) = 20 pół TOTAL
     ],
     13: [
       { size: 5, count: 1 }, // 1x pięciomasztowiec
