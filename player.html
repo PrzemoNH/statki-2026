@@ -132,8 +132,19 @@ function showBoard(player) {
   const shipsData = typeof player.ships === 'string' ? JSON.parse(player.ships) : player.ships;
   
   const boardSize = Math.sqrt(boardData.length);
+  const shipCells = boardData.filter(c => c.state === 'ship').length;
+  const expectedShipCells = shipsData?.reduce((sum, ship) => sum + ship.size, 0) || 0;
+  
+  console.log('📊 DEBUG showBoard():', {
+    boardSize: `${boardSize}×${boardSize}`,
+    shipCount: shipsData?.length || 0,
+    shipCells: shipCells,
+    expectedShipCells: expectedShipCells,
+    match: shipCells === expectedShipCells ? '✅' : '❌'
+  });
+  
   document.getElementById('boardInfo').textContent = 
-    `Statków: ${shipsData?.length || 0} | Plansza: ${boardSize}×${boardSize}`;
+    `Statków: ${shipsData?.length || 0} | Plansza: ${boardSize}×${boardSize} | Pól statków: ${shipCells}/${expectedShipCells}`;
   
   renderBoard(boardData, player.color);
   
