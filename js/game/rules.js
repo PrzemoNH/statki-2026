@@ -1,10 +1,14 @@
 /**
  * RULES.JS — Zasady gry i walidacja
+ * 
+ * Logika sąsiedztwa statków:
+ * - Jednomasztowiec (A): może dotykać rogami WSZYSTKIEGO (A i B), nie może dotykać bokami
+ * - Wielomasztowiec (B): nie może dotykać bokami, po przekątnej tylko jeśli sąsiad to A
  */
 
 const RULES = {
   /**
-   * Flota dla różnych rozmiarów planszy
+   * Flota dla różnych rozmiarów planszy (posortowana od największych)
    */
   FLEETS: {
     10: [
@@ -51,69 +55,74 @@ const RULES = {
   },
 
   /**
-   * Sprawdza, czy statek można umieścić bez kolizji
-   * @param {Array} board - Plansza (tablica 1D)
-   * @param {Number} boardSize - Rozmiar planszy (10, 13 lub 15)
-   * @param {Number} row - Wiersz startowy
-   * @param {Number} col - Kolumna startowa
-   * @param {Number} length - Długość statku
-   * @param {Boolean} isHorizontal - Czy statek jest poziomy
-   * @param {Number} ignoredShipId - ID statku do ignorowania (edycja)
+   * Sprawdza czy pole należy do jednomasztowca (A)
    */
-  canPlaceShip(board, boardSize, row, col, length, isHorizontal, ignoredShipId = null) {
-    // Sprawdzenie granic
-    if (isHorizontal) {
-      if (col + length > boardSize) return false;
-    } else {
-      if (row + length > boardSize) return false;
+  isSingleMastCell(board, boardSize, r, c) {
+    const cell = BOARD.getCell(board, boardSize, r, c);
+    if (!cell || cell.state !== 'ship') return false;
+    
+    // Sprawdź czy ma sąsiadów ortogonalnie (boki)
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (Math.abs(dr) + Math.abs(dc) !== 1) continue; // Tylko boki (nie rogi)
+        const neighbor = BOARD.getCell(board, boardSize, r + dr, c + dc);
+        if (neighbor?.shipId === cell.shipId) return false; // Ma sąsiada o tym samym ID = wielomasztowiec
+      }
     }
+    return true; // Brak sąsiadów ortogonalnych = jednomasztowiec
+  },
 
-    // Sprawdzenie pól zajętych przez statek
+  /**
+   * Sprawdza, czy statek można umieścić bez kolizji
+   * 
+   * Zasady:
+   * - Jednomasztowiec (A): może dotykać rogami wszystkiego, nie może dotykać bokami
+   * - Wielomasztowiec (B): nie może dotykać bokami, po przekątnej tylko A
+   */
+  canPlaceShip(board, boardSize, row, col, length, isHorizontal) {
+    // Sprawdzenie granic
+    if (isHorizontal && col + length > boardSize) return false;
+    if (!isHorizontal && row + length > boardSize) return false;
+
+    const isSingleMast = length === 1;
+
+    // Sprawdzenie czy pola nie są zajęte
     const shipCells = [];
     for (let i = 0; i < length; i++) {
       const r = isHorizontal ? row : row + i;
       const c = isHorizontal ? col + i : col;
       const cell = BOARD.getCell(board, boardSize, r, c);
       if (!cell) return false;
-      if (cell.state === 'ship' && cell.shipId !== ignoredShipId) return false;
+      if (cell.state === 'ship') return false;
       shipCells.push({ r, c });
     }
 
-    // Sprawdzenie otoczenia (nie mogą dotykać nawet rogami, z wyjątkiem jednomasztowców)
-    if (length > 1) {
-      for (const { r, c } of shipCells) {
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            if (dr === 0 && dc === 0) continue;
-            const nr = r + dr;
-            const nc = c + dc;
-            const neighbor = BOARD.getCell(board, boardSize, nr, nc);
-            if (neighbor?.state === 'ship' && neighbor.shipId !== ignoredShipId) {
-              return false;
-            }
+    // Sprawdzenie sąsiedztwa
+    for (const { r, c } of shipCells) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+
+          const nr = r + dr;
+          const nc = c + dc;
+          const neighbor = BOARD.getCell(board, boardSize, nr, nc);
+
+          if (!neighbor || neighbor.state !== 'ship') continue;
+
+          const isDiagonal = Math.abs(dr) === 1 && Math.abs(dc) === 1;
+          const neighborIsSingle = this.isSingleMastCell(board, boardSize, nr, nc);
+
+          if (isSingleMast) {
+            // A: może dotykać rogami wszystkiego (A i B)
+            // A: nie może dotykać bokami niczego
+            if (!isDiagonal) return false; // Dotyk bokiem? NIE
+            // Dotyk rogiem? TAK, zawsze ok
+          } else {
+            // B: nie może dotykać bokami niczego
+            if (!isDiagonal) return false; // Dotyk bokiem? NIE
+            // B: po przekątnej — tylko jeśli sąsiad to A
+            if (isDiagonal && !neighborIsSingle) return false; // Po rogiem z B? NIE
           }
-        }
-      }
-    } else {
-      // Dla jednomasztowców - mogą dotykać tylko rogami
-      const diagonals = [
-        { r: row - 1, c: col - 1 }, { r: row - 1, c: col + 1 },
-        { r: row + 1, c: col - 1 }, { r: row + 1, c: col + 1 }
-      ];
-      for (const { r, c } of diagonals) {
-        const neighbor = BOARD.getCell(board, boardSize, r, c);
-        if (neighbor?.state === 'ship' && neighbor.shipId !== ignoredShipId) {
-          // Sprawdź, czy to wielomasztowiec
-          const adjacentCells = [];
-          for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-              if (Math.abs(dr) + Math.abs(dc) === 1) { // Sąsiedztwo ortogonalne
-                const adj = BOARD.getCell(board, boardSize, r + dr, c + dc);
-                if (adj?.shipId === neighbor.shipId) adjacentCells.push(adj);
-              }
-            }
-          }
-          if (adjacentCells.length > 0) return false; // To wielomasztowiec, nie można
         }
       }
     }
