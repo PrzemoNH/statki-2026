@@ -18,7 +18,10 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; }
 #btnStart.ready { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; box-shadow: 0 0 25px rgba(0,255,153,0.25); }
 #roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-#roomCode { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 20px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
+#roomCode { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 16px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
+#qrBox { text-align: center; margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; }
+#qrBox p { color: #9fb0c8; font-size: 13px; margin-bottom: 10px; }
+#qrCanvas { border-radius: 8px; }
 #playerList { margin-top: 10px; }
 .player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; }
 #debug { margin-top: 22px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; max-height: 180px; overflow: auto; }
@@ -39,22 +42,28 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.3.3</p>
+<p>Panel hosta — v0.3.4</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
   <div id="roomCode">-----</div>
+
+  <div id="qrBox">
+    <p>📱 Zeskanuj aby dołączyć:</p>
+    <canvas id="qrCanvas"></canvas>
+  </div>
+
   <p style="margin-top:16px">Gracze:</p>
   <div id="playerList"></div>
   <button id="btnStart" disabled>⚠️ Min. 2 graczy</button>
 </div>
 
 <div id="boardsContainer"></div>
-
 <div id="debug"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="js/game/board.js"></script>
 <script src="js/game/rules.js"></script>
 <script src="js/game/placement.js"></script>
@@ -62,7 +71,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.3.3',
+  VERSION: '0.3.4',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -74,7 +83,6 @@ const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 const debug = document.getElementById('debug');
 let roomCode = null;
 let hostId = null;
-let pollingInterval = null;
 
 function log(msg, type='inf') {
   const d = document.createElement('div');
@@ -86,10 +94,7 @@ function log(msg, type='inf') {
 
 function generateHostId() {
   let id = localStorage.getItem('host_id');
-  if (!id) {
-    id = 'host_' + Math.random().toString(36).substr(2, 12);
-    localStorage.setItem('host_id', id);
-  }
+  if (!id) { id = 'host_' + Math.random().toString(36).substr(2, 12); localStorage.setItem('host_id', id); }
   return id;
 }
 
@@ -100,16 +105,26 @@ function generateCode() {
        + d[Math.random()*d.length|0] + d[Math.random()*d.length|0];
 }
 
-function renderMiniBoard(board, boardSize) {
-  const html = [];
-  for (let i = 0; i < board.length; i++) {
-    const cell = board[i];
+function generateQR(code) {
+  const url = window.location.origin + '/player.html?code=' + code;
+  const canvas = document.getElementById('qrCanvas');
+  QRCode.toCanvas(canvas, url, {
+    width: 200,
+    margin: 1,
+    color: { dark: '#00ffb3', light: '#070b14' }
+  }, (err) => {
+    if (err) log('⚠️ QR błąd: ' + err.message, 'inf');
+    else log('✅ QR wygenerowany', 'ok');
+  });
+}
+
+function renderMiniBoard(board) {
+  return board.map(cell => {
     let cls = 'miniCell';
     if (cell.hit && cell.state === 'ship') cls += ' hit';
     else if (cell.hit && cell.state === 'water') cls += ' miss';
-    html.push(`<div class="${cls}"></div>`);
-  }
-  return html.join('');
+    return `<div class="${cls}"></div>`;
+  }).join('');
 }
 
 function renderBoards(players) {
@@ -118,18 +133,14 @@ function renderBoards(players) {
     container.style.display = 'none';
     return;
   }
-
   container.style.display = 'grid';
   container.innerHTML = '';
-
   const firstBoard = typeof players[0].board === 'string' ? JSON.parse(players[0].board) : players[0].board;
   const boardSize = Math.sqrt(firstBoard.length);
-
   players.forEach(player => {
     const board = typeof player.board === 'string' ? JSON.parse(player.board) : player.board;
     const sunk = SHOOTER.countSunkShips(board, boardSize);
     const total = RULES.getTotalShipCount(boardSize);
-
     const card = document.createElement('div');
     card.className = 'boardCard';
     card.innerHTML = `
@@ -138,7 +149,7 @@ function renderBoards(players) {
         ${player.name}
       </div>
       <div class="miniBoard" style="grid-template-columns: repeat(${boardSize}, 20px)">
-        ${renderMiniBoard(board, boardSize)}
+        ${renderMiniBoard(board)}
       </div>
       <div class="boardStats">
         <div>🎯 Zatopione: ${sunk}/${total}</div>
@@ -181,7 +192,7 @@ function render(players) {
 }
 
 function startPolling() {
-  pollingInterval = setInterval(async () => {
+  setInterval(async () => {
     if (!roomCode) return;
     const { data } = await supabase
       .from('players').select('*').eq('room_code', roomCode).order('joined_at', { ascending: true });
@@ -194,21 +205,17 @@ hostId = generateHostId();
 document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
   const code = generateCode();
-
   try {
     const { data: room, error } = await supabase
       .from('rooms')
       .insert({ code, status: 'waiting', host_id: hostId })
-      .select()
-      .single();
-
-    if (error) { log('❌ Błąd Supabase: ' + error.message, 'err'); return; }
-
+      .select().single();
+    if (error) { log('❌ ' + error.message, 'err'); return; }
     roomCode = room.code;
     document.getElementById('roomCode').textContent = room.code;
     document.getElementById('roomBox').style.display = 'block';
     log('✅ Pokój: ' + room.code, 'ok');
-
+    generateQR(room.code);
     startPolling();
   } catch (e) {
     log('❌ ' + e.message, 'err');
@@ -217,50 +224,31 @@ document.getElementById('btnCreate').onclick = async () => {
 
 document.getElementById('btnStart').onclick = async () => {
   log('🚀 Generuję plansze...', 'inf');
-
   const { data: players } = await supabase
     .from('players').select('*').eq('room_code', roomCode);
-
-  if (!players || players.length < 2) {
-    log('❌ Min. 2 graczy', 'err');
-    return;
-  }
-
+  if (!players || players.length < 2) { log('❌ Min. 2 graczy', 'err'); return; }
   const boardSize = CONFIG.BOARD_SIZES[players.length] || 10;
   log('📐 Plansza: ' + boardSize + '×' + boardSize, 'inf');
-
   try {
     const { sharedBoard, playerBoards, playerShips } = PLACEMENT.generateSharedBoard(boardSize, players);
-
     let successCount = 0;
     for (const player of players) {
-      const boardData = JSON.stringify(playerBoards[player.id]);
-      const shipsData = JSON.stringify(playerShips[player.id]);
-
       const { error } = await supabase
         .from('players')
-        .update({ board: boardData, ships: shipsData })
+        .update({ board: JSON.stringify(playerBoards[player.id]), ships: JSON.stringify(playerShips[player.id]) })
         .eq('id', player.id);
-
-      if (error) {
-        log('❌ ' + player.name + ': ' + error.message, 'err');
-      } else {
-        successCount++;
-        log('✅ ' + player.name + ' — ' + playerShips[player.id].length + ' statków', 'ok');
-      }
+      if (error) { log('❌ ' + player.name + ': ' + error.message, 'err'); }
+      else { successCount++; log('✅ ' + player.name + ' — ' + playerShips[player.id].length + ' statków', 'ok'); }
     }
-
     if (successCount === players.length) {
       const turnOrder = players.map(p => p.id).sort(() => Math.random() - 0.5);
       const firstPlayer = turnOrder[0];
-
       await supabase.from('rooms').update({
         status: 'playing',
         current_turn: firstPlayer,
         turn_order: turnOrder
       }).eq('code', roomCode);
-
-      log('🎯 Gra rozpoczęta! Pierwszy ruch: ' + players.find(p => p.id === firstPlayer)?.name, 'ok');
+      log('🎯 Gra rozpoczęta! Pierwszy: ' + players.find(p => p.id === firstPlayer)?.name, 'ok');
     }
   } catch (e) {
     log('❌ ' + e.message, 'err');
