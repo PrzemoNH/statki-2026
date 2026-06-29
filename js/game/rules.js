@@ -67,16 +67,12 @@ const RULES = {
       for (let dr = -1; dr <= 1; dr++) {
         for (let dc = -1; dc <= 1; dc++) {
           if (dr === 0 && dc === 0) continue;
-
           const nr = r + dr;
           const nc = c + dc;
           const neighbor = BOARD.getCell(board, boardSize, nr, nc);
           if (!neighbor || neighbor.state !== 'ship') continue;
-
           const isDiagonal = Math.abs(dr) === 1 && Math.abs(dc) === 1;
-
           if (!isDiagonal) return false;
-
           if (!isSingleMast && isDiagonal) {
             const neighborIsSingle = this.isSingleMastCell(board, boardSize, nr, nc);
             if (!neighborIsSingle) return false;
