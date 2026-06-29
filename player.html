@@ -39,13 +39,12 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 .colorDot { width: 24px; height: 24px; border-radius: 50%; }
 .playerName { font-size: 1.1rem; color: #00ffb3; font-weight: 700; }
 #boardInfo { color: #9fb0c8; font-size: 13px; }
-#boardGrid { display: inline-grid; gap: 2px; margin-top: 10px; }
-.cell { width: 32px; height: 32px; border-radius: 4px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); transition: 0.2s; cursor: pointer; }
-.cell:hover { background: rgba(255,255,255,0.1); }
-.cell.ship { background: rgba(0,255,179,0.25); border-color: #00ffb3; }
-.cell.water { background: rgba(100,150,255,0.15); border-color: #4488ff; }
-.cell.hit { background: rgba(255,77,77,0.3); border-color: #ff4d4d; }
-.cell.miss { background: rgba(100,100,100,0.2); border-color: #666; }
+#boardGrid { display: inline-grid; gap: 0px; margin-top: 10px; }
+.cell { width: 32px; height: 32px; border-radius: 0px; background: #0a1520; border: 1px solid #1a2a40; transition: 0.2s; cursor: pointer; }
+.cell:hover { background: rgba(255,255,255,0.05); border-color: #2a4a60; }
+.cell.ship { background: rgba(0,255,179,0.4); border: 1px solid #00ffb3; }
+.cell.hit { background: rgba(255,77,77,0.5); border: 1px solid #ff4d4d; }
+.cell.miss { background: rgba(100,100,100,0.3); border: 1px solid #666; }
 #btnHide { margin-top: 16px; background: rgba(255,255,255,0.08); color: #eaf2ff; border: 1px solid rgba(255,255,255,0.15); font-size: 15px; padding: 12px; width: 100%; }
 #btnHide:hover { background: rgba(255,255,255,0.14); transform: none; box-shadow: none; }
 @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 1.8rem; } .cell { width: 24px; height: 24px; } }
@@ -54,7 +53,7 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.2.0</p>
+<p>Gracz — v0.2.1</p>
 
 <!-- DOŁĄCZANIE -->
 <div id="joinScreen">
@@ -131,7 +130,7 @@ function log(msg, type='inf') {
   div.innerHTML = `<p class="${type}">${msg}</p>`;
 }
 
-function renderBoard(board, playerColor, boardSize) {
+function renderBoard(board, playerColor, boardSize, isMyBoard) {
   const grid = document.getElementById('boardGrid');
   grid.style.gridTemplateColumns = `repeat(${boardSize}, 32px)`;
   grid.innerHTML = '';
@@ -141,16 +140,24 @@ function renderBoard(board, playerColor, boardSize) {
     const cellDiv = document.createElement('div');
     cellDiv.className = 'cell';
     
-    if (cell.state === 'ship') {
-      cellDiv.classList.add('ship');
-      cellDiv.style.borderColor = playerColor;
-      cellDiv.style.background = `${playerColor}40`;
-    } else if (cell.hit && cell.state === 'ship') {
-      cellDiv.classList.add('hit');
-    } else if (cell.hit) {
-      cellDiv.classList.add('miss');
-    } else if (cell.state === 'water') {
-      cellDiv.classList.add('water');
+    // ✅ MOJA MAPA - pokaż statki
+    if (isMyBoard) {
+      if (cell.state === 'ship') {
+        cellDiv.classList.add('ship');
+        cellDiv.style.borderColor = playerColor;
+        cellDiv.style.background = `${playerColor}66`;
+      } else if (cell.hit) {
+        cellDiv.classList.add('miss');
+      }
+    } 
+    // ✅ MAPA WROGA - ukryj statki, pokaż tylko trafienia
+    else {
+      if (cell.hit && cell.state === 'ship') {
+        cellDiv.classList.add('hit');
+      } else if (cell.hit && cell.state === 'water') {
+        cellDiv.classList.add('miss');
+      }
+      // Jeśli nie trafione - nie pokazuj nic (pusta komórka)
     }
     
     grid.appendChild(cellDiv);
@@ -189,12 +196,14 @@ function renderCurrentBoard() {
   const boardSize = Math.sqrt(boardData.length);
   const shipCount = (typeof player.ships === 'string' ? JSON.parse(player.ships) : player.ships)?.length || 0;
   
+  const isMyBoard = currentViewingPlayerId === myPlayerId;
+  
   // Header
   document.getElementById('boardColorDot').style.backgroundColor = player.color;
   document.getElementById('boardPlayerName').textContent = player.name;
   document.getElementById('boardInfo').textContent = `Statków: ${shipCount} | Plansza: ${boardSize}×${boardSize}`;
   
-  renderBoard(boardData, player.color, boardSize);
+  renderBoard(boardData, player.color, boardSize, isMyBoard);
 }
 
 function startPolling() {
@@ -247,7 +256,6 @@ document.getElementById('btnJoin').addEventListener('click', async () => {
 
     if (roomErr || !room) throw new Error('Nie znaleziono pokoju: ' + code);
     if (room.status === 'playing') {
-      // Gra już się zaczęła - pokaż grę od razu
       roomCode = room.code;
       currentViewingPlayerId = null;
     } else if (room.status !== 'waiting') {
@@ -288,7 +296,6 @@ document.getElementById('btnJoin').addEventListener('click', async () => {
       document.getElementById('waitingScreen').style.display = 'block';
       document.getElementById('waitingName').textContent = '👤 ' + player.name;
       
-      // Czekaj na start gry
       const checkGameStart = setInterval(async () => {
         const { data: updated } = await supabase
           .from('rooms').select('*').eq('code', code).single();
