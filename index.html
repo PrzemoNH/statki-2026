@@ -35,7 +35,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.0.8</p>
+<p>Panel hosta — v0.1.0</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -56,7 +56,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <div id="debug"></div>
 
-<!-- ✅ Załaduj QRCode GLOBALNIE (przed modułem, linia 58) -->
+<!-- ✅ Załaduj QRCode SYNCHRONICZNIE (przed modułem) -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script src="js/game/board.js"></script>
@@ -65,11 +65,12 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script>
 const CONFIG = {
-  VERSION: '0.0.8',
+  VERSION: '0.1.0',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
 };
+
 window.onerror = (msg, src, line) => {
   document.getElementById('debug').innerHTML += `<div class="err">JS: ${msg} (${line})</div>`;
 };
@@ -92,7 +93,7 @@ async function initModule() {
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
   const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
   
-  // ✅ QRCode już załadowany w linii 58 <script src...>
+  // ✅ QRCode załadowany synchronicznie w linii 68
   if (window.QRCode) {
     log('✅ QRCode załadowany', 'ok');
   } else {
@@ -180,7 +181,6 @@ document.getElementById('btnCreate').onclick = async () => {
   const playerUrl = window.location.origin + '/player.html?code=' + room.code;
   const canvas = document.getElementById('qrCanvas');
   
-  // ✅ Sprawdź czy QRCode jest dostępny
   if (window.QRCode) {
     try {
       QRCode.toCanvas(canvas, playerUrl, { 
@@ -256,7 +256,7 @@ document.getElementById('btnStart').onclick = async () => {
       log('❌ Nie wszystkim graczom wysłano plansze!', 'err');
     }
   } catch (e) {
-    log('❌ Błąd generowania planszy: ' + e.message, 'err');
+    log('❌ ' + e.message, 'err');
   }
 };
 </script>
