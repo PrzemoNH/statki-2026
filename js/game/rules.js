@@ -44,14 +44,28 @@ const RULES = {
   },
 
   /**
-   * Sprawdza, czy statek można umieścić bez kolizji
+   * Liczy całkowitą liczbę pól zajętych przez statki
    */
-  canPlaceShip(board, size, row, col, length, isHorizontal, ignoredShipId = null) {
+  getTotalShipCells(boardSize) {
+    return this.getFleet(boardSize).reduce((sum, ship) => sum + (ship.size * ship.count), 0);
+  },
+
+  /**
+   * Sprawdza, czy statek można umieścić bez kolizji
+   * @param {Array} board - Plansza (tablica 1D)
+   * @param {Number} boardSize - Rozmiar planszy (10, 13 lub 15)
+   * @param {Number} row - Wiersz startowy
+   * @param {Number} col - Kolumna startowa
+   * @param {Number} length - Długość statku
+   * @param {Boolean} isHorizontal - Czy statek jest poziomy
+   * @param {Number} ignoredShipId - ID statku do ignorowania (edycja)
+   */
+  canPlaceShip(board, boardSize, row, col, length, isHorizontal, ignoredShipId = null) {
     // Sprawdzenie granic
     if (isHorizontal) {
-      if (col + length > size) return false;
+      if (col + length > boardSize) return false;
     } else {
-      if (row + length > size) return false;
+      if (row + length > boardSize) return false;
     }
 
     // Sprawdzenie pól zajętych przez statek
@@ -59,7 +73,7 @@ const RULES = {
     for (let i = 0; i < length; i++) {
       const r = isHorizontal ? row : row + i;
       const c = isHorizontal ? col + i : col;
-      const cell = BOARD.getCell(board, size, r, c);
+      const cell = BOARD.getCell(board, boardSize, r, c);
       if (!cell) return false;
       if (cell.state === 'ship' && cell.shipId !== ignoredShipId) return false;
       shipCells.push({ r, c });
@@ -73,7 +87,7 @@ const RULES = {
             if (dr === 0 && dc === 0) continue;
             const nr = r + dr;
             const nc = c + dc;
-            const neighbor = BOARD.getCell(board, size, nr, nc);
+            const neighbor = BOARD.getCell(board, boardSize, nr, nc);
             if (neighbor?.state === 'ship' && neighbor.shipId !== ignoredShipId) {
               return false;
             }
@@ -87,14 +101,14 @@ const RULES = {
         { r: row + 1, c: col - 1 }, { r: row + 1, c: col + 1 }
       ];
       for (const { r, c } of diagonals) {
-        const neighbor = BOARD.getCell(board, size, r, c);
+        const neighbor = BOARD.getCell(board, boardSize, r, c);
         if (neighbor?.state === 'ship' && neighbor.shipId !== ignoredShipId) {
           // Sprawdź, czy to wielomasztowiec
           const adjacentCells = [];
           for (let dr = -1; dr <= 1; dr++) {
             for (let dc = -1; dc <= 1; dc++) {
               if (Math.abs(dr) + Math.abs(dc) === 1) { // Sąsiedztwo ortogonalne
-                const adj = BOARD.getCell(board, size, r + dr, c + dc);
+                const adj = BOARD.getCell(board, boardSize, r + dr, c + dc);
                 if (adj?.shipId === neighbor.shipId) adjacentCells.push(adj);
               }
             }
@@ -110,13 +124,13 @@ const RULES = {
   /**
    * Umieszcza statek na planszy
    */
-  placeShip(board, size, row, col, length, isHorizontal, shipId, owner) {
-    if (!this.canPlaceShip(board, size, row, col, length, isHorizontal)) return false;
+  placeShip(board, boardSize, row, col, length, isHorizontal, shipId, owner) {
+    if (!this.canPlaceShip(board, boardSize, row, col, length, isHorizontal)) return false;
 
     for (let i = 0; i < length; i++) {
       const r = isHorizontal ? row : row + i;
       const c = isHorizontal ? col + i : col;
-      BOARD.setCell(board, size, r, c, {
+      BOARD.setCell(board, boardSize, r, c, {
         state: 'ship',
         owner,
         shipId,
@@ -129,15 +143,15 @@ const RULES = {
   /**
    * Sprawdza trafienie
    */
-  shoot(board, size, row, col) {
-    const cell = BOARD.getCell(board, size, row, col);
+  shoot(board, boardSize, row, col) {
+    const cell = BOARD.getCell(board, boardSize, row, col);
     if (!cell) return { hit: false, result: 'out_of_bounds' };
     if (cell.hit) return { hit: false, result: 'already_hit' };
 
     cell.hit = true;
 
     if (cell.state === 'ship') {
-      const isSunk = BOARD.isShipSunk(board, size, cell.shipId);
+      const isSunk = BOARD.isShipSunk(board, boardSize, cell.shipId);
       return {
         hit: true,
         result: isSunk ? 'sunk' : 'hit',
