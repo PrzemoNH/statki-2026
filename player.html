@@ -139,14 +139,11 @@ function renderBoard(board, playerColor, boardSize, isMyBoard) {
     cellDiv.className = 'cell';
 
     if (isMyBoard) {
-      // MOJA MAPA: statki ukryte, pokazuj tylko trafienia
-      if (cell.hit && cell.state === 'ship') {
-        cellDiv.classList.add('hit');
-      } else if (cell.hit && cell.state === 'water') {
-        cellDiv.classList.add('miss');
-      }
-      // Statki NIE widoczne - pusta kratka
-    } else {
+  if (cell.state === 'ship') cellDiv.classList.add('ship');
+  if (cell.hit && cell.state === 'ship') cellDiv.classList.add('hit');
+  if (cell.hit && cell.state === 'water') cellDiv.classList.add('miss');
+}
+ else {
       // MAPA WROGA: tylko trafienia i pudła
       if (cell.hit && cell.state === 'ship') {
         cellDiv.classList.add('hit');
