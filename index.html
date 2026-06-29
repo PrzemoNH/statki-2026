@@ -29,7 +29,6 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 .colorBadge { width: 20px; height: 20px; border-radius: 50%; }
 .miniBoard { display: inline-grid; gap: 0; }
 .miniCell { width: 20px; height: 20px; background: #0a1520; border: 0.5px solid #1a2a40; }
-.miniCell.ship { background: rgba(0,255,179,0.4); border: 0.5px solid #00ffb3; }
 .miniCell.hit { background: rgba(255,77,77,0.5); border: 0.5px solid #ff4d4d; }
 .miniCell.miss { background: rgba(100,100,100,0.3); border: 0.5px solid #666; }
 .boardStats { margin-top: 8px; font-size: 12px; color: #9fb0c8; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -44,7 +43,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.3.1</p>
+<p>Panel hosta — v0.3.2</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -67,7 +66,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.3.1',
+  VERSION: '0.3.2',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -110,9 +109,13 @@ function renderMiniBoard(board, boardSize) {
   for (let i = 0; i < board.length; i++) {
     const cell = board[i];
     let cls = 'miniCell';
-    if (cell.state === 'ship' && cell.hit) cls += ' hit';
-    else if (cell.state === 'ship') cls += ' ship';
-    else if (cell.hit) cls += ' miss';
+    // ✅ POKAZUJ TYLKO: trafienia i pudła, statki UKRYTE
+    if (cell.hit && cell.state === 'ship') {
+      cls += ' hit';
+    } else if (cell.hit && cell.state === 'water') {
+      cls += ' miss';
+    }
+    // Jeśli nie trafione - pusta komórka (nie pokazuj statków!)
     html.push(`<div class="${cls}"></div>`);
   }
   return html.join('');
