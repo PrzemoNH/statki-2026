@@ -80,13 +80,11 @@ const RULES = {
    * - Wielomasztowiec (B): nie może dotykać bokami, po przekątnej tylko A
    */
   canPlaceShip(board, boardSize, row, col, length, isHorizontal) {
-    // Sprawdzenie granic
     if (isHorizontal && col + length > boardSize) return false;
     if (!isHorizontal && row + length > boardSize) return false;
 
     const isSingleMast = length === 1;
 
-    // Sprawdzenie czy pola nie są zajęte
     const shipCells = [];
     for (let i = 0; i < length; i++) {
       const r = isHorizontal ? row : row + i;
@@ -96,6 +94,35 @@ const RULES = {
       if (cell.state === 'ship') return false;
       shipCells.push({ r, c });
     }
+
+    for (const { r, c } of shipCells) {
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+
+          const nr = r + dr;
+          const nc = c + dc;
+          const neighbor = BOARD.getCell(board, boardSize, nr, nc);
+          if (!neighbor || neighbor.state !== 'ship') continue;
+
+          const isDiagonal = Math.abs(dr) === 1 && Math.abs(dc) === 1;
+
+          // Żaden statek nie może dotykać bokiem niczego
+          if (!isDiagonal) return false;
+
+          // Po przekątnej — jednomasztowiec może dotykać wszystkiego
+          // Wielomasztowiec może dotykać rogami tylko jednomasztowców
+          if (!isSingleMast && isDiagonal) {
+            const neighborIsSingle = this.isSingleMastCell(board, boardSize, nr, nc);
+            if (!neighborIsSingle) return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  },
+
 
     // Sprawdzenie sąsiedztwa
     for (const { r, c } of shipCells) {
