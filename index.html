@@ -44,7 +44,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.3.0</p>
+<p>Panel hosta — v0.3.1</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -67,7 +67,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.3.0',
+  VERSION: '0.3.1',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -78,6 +78,7 @@ const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const debug = document.getElementById('debug');
 let roomCode = null;
+let hostId = null;
 let pollingInterval = null;
 
 function log(msg, type='inf') {
@@ -86,6 +87,15 @@ function log(msg, type='inf') {
   d.textContent = msg;
   debug.appendChild(d);
   debug.scrollTop = debug.scrollHeight;
+}
+
+function generateHostId() {
+  let id = localStorage.getItem('host_id');
+  if (!id) {
+    id = 'host_' + Math.random().toString(36).substr(2, 12);
+    localStorage.setItem('host_id', id);
+  }
+  return id;
 }
 
 function generateCode() {
@@ -184,21 +194,33 @@ function startPolling() {
   }, 1000);
 }
 
+hostId = generateHostId();
+
 document.getElementById('btnCreate').onclick = async () => {
   log('Tworzę pokój...', 'inf');
   const code = generateCode();
 
-  const { data: room } = await supabase
-    .from('rooms')
-    .insert({ code, status: 'waiting' })
-    .select().single();
+  try {
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .insert({ code, status: 'waiting', host_id: hostId })
+      .select()
+      .single();
 
-  roomCode = room.code;
-  document.getElementById('roomCode').textContent = room.code;
-  document.getElementById('roomBox').style.display = 'block';
-  log('✅ Pokój: ' + room.code, 'ok');
+    if (error) {
+      log('❌ Błąd Supabase: ' + error.message, 'err');
+      return;
+    }
 
-  startPolling();
+    roomCode = room.code;
+    document.getElementById('roomCode').textContent = room.code;
+    document.getElementById('roomBox').style.display = 'block';
+    log('✅ Pokój: ' + room.code, 'ok');
+
+    startPolling();
+  } catch (e) {
+    log('❌ ' + e.message, 'err');
+  }
 };
 
 document.getElementById('btnStart').onclick = async () => {
