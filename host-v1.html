@@ -13,11 +13,15 @@ body::after { background: #3b82f6; bottom: -120px; right: -120px; }
 h1 { font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 6px; color: #00ffb3; }
 p { color: #9fb0c8; margin-bottom: 24px; }
 button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px; font-weight: 600; transition: 0.25s ease; }
-#btnCreate { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 16px; box-shadow: 0 10px 30px rgba(0,255,153,0.2); }
-#btnCreate:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
 #btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; }
 #btnStart.ready { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; box-shadow: 0 0 25px rgba(0,255,153,0.25); }
 #roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+#joinBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+#joinBox input { width: 100%; padding: 14px 16px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #eaf2ff; font-size: 18px; border-radius: 12px; outline: none; }
+#joinBox input:focus { border-color: #00c2ff; background: rgba(0,194,255,0.05); box-shadow: 0 0 0 3px rgba(0,194,255,0.1); }
+#btnConfirmJoin { width: 100%; padding: 14px; margin-top: 12px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; }
+#btnConfirmJoin:hover { transform: translateY(-2px); }
+#joinStatus { margin-top: 12px; color: #9fb0c8; font-size: 14px; }
 #roomCodeBig { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 16px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
 #qrBox { text-align: center; margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; }
 #qrBox p { color: #9fb0c8; font-size: 13px; margin-bottom: 10px; }
@@ -49,8 +53,6 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <h1>⚓ Statki 2026</h1>
 <p>Panel hosta — v0.3.5</p>
 
-<button id="btnCreate">UTWÓRZ POKÓJ</button>
-
 <div id="roomBox">
   <p>Kod pokoju:</p>
   <div id="roomCodeBig">-----</div>
@@ -63,6 +65,13 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   <p style="margin-top:16px">Gracze:</p>
   <div id="playerList"></div>
   <button id="btnStart" disabled>⚠️ Min. 2 graczy</button>
+</div>
+
+<div id="joinBox">
+  <p>Wpisz kod pokoju:</p>
+  <input id="inputJoinCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
+  <button id="btnConfirmJoin">🔍 DOŁĄCZ</button>
+  <div id="joinStatus"></div>
 </div>
 
 <div id="gameHeader">
@@ -90,6 +99,9 @@ const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/su
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const QRCode = (await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm')).default;
+
+const urlParams = new URLSearchParams(window.location.search);
+const modeJoin = urlParams.get('mode') === 'join';
 
 const debug = document.getElementById('debug');
 let roomCode = null;
@@ -141,7 +153,7 @@ function renderMiniBoard(board) {
 
 function renderBoards(players) {
   const container = document.getElementById('boardsContainer');
-  if (players.length < 2 || !players[0].board) {
+  if (players.length < 1 || !players[0].board) {
     container.classList.remove('active');
     return;
   }
@@ -214,26 +226,56 @@ function startPolling() {
 
 hostId = generateHostId();
 
-document.getElementById('btnCreate').onclick = async () => {
-  log('Tworzę pokój...', 'inf');
-  const code = generateCode();
+// INICJALIZACJA - Jeśli mode=join, pokazuj input. W przeciwnym razie auto-twórz pokój.
+if (modeJoin) {
+  document.getElementById('joinBox').style.display = 'block';
+  document.getElementById('roomBox').style.display = 'none';
+} else {
+  // Auto-twórz pokój
+  (async () => {
+    log('Tworzę pokój...', 'inf');
+    const code = generateCode();
+    try {
+      const { data: room, error } = await supabase
+        .from('rooms')
+        .insert({ code, status: 'waiting', host_id: hostId })
+        .select().single();
+      if (error) { log('❌ ' + error.message, 'err'); return; }
+      roomCode = room.code;
+      document.getElementById('roomCodeBig').textContent = room.code;
+      document.getElementById('roomBox').style.display = 'block';
+      log('✅ Pokój: ' + room.code, 'ok');
+      generateQR(room.code);
+      startPolling();
+    } catch (e) {
+      log('❌ ' + e.message, 'err');
+    }
+  })();
+}
+
+// DOŁĄCZ DO POKOJU (dla mode=join)
+document.getElementById('btnConfirmJoin').onclick = async () => {
+  const code = document.getElementById('inputJoinCode').value.trim().toUpperCase();
+  if (!code || code.length !== 5) {
+    document.getElementById('joinStatus').innerHTML = '<span class="err">❌ Wpisz poprawny kod (5 znaków)</span>';
+    return;
+  }
   try {
-    const { data: room, error } = await supabase
-      .from('rooms')
-      .insert({ code, status: 'waiting', host_id: hostId })
-      .select().single();
-    if (error) { log('❌ ' + error.message, 'err'); return; }
+    const { data: room, error } = await supabase.from('rooms').select('*').eq('code', code).single();
+    if (error || !room) throw new Error('Pokój nie znaleziony: ' + code);
     roomCode = room.code;
-    document.getElementById('roomCodeBig').textContent = room.code;
+    gameStarted = room.status === 'playing';
+    document.getElementById('joinBox').style.display = 'none';
     document.getElementById('roomBox').style.display = 'block';
-    log('✅ Pokój: ' + room.code, 'ok');
-    generateQR(room.code);
+    document.getElementById('roomCodeBig').textContent = roomCode;
+    log('✅ Połączono z pokojem: ' + room.code, 'ok');
     startPolling();
   } catch (e) {
-    log('❌ ' + e.message, 'err');
+    document.getElementById('joinStatus').innerHTML = '<span class="err">❌ ' + e.message + '</span>';
   }
 };
 
+// START GRY
 document.getElementById('btnStart').onclick = async () => {
   log('🚀 Generuję plansze...', 'inf');
   const { data: players } = await supabase
@@ -262,7 +304,6 @@ document.getElementById('btnStart').onclick = async () => {
       }).eq('code', roomCode);
       log('🎯 Gra rozpoczęta! Pierwszy: ' + players.find(p => p.id === firstPlayer)?.name, 'ok');
       
-      // Ukryj panel, pokaż grę
       gameStarted = true;
       document.getElementById('roomBox').style.display = 'none';
       document.getElementById('gameHeader').classList.add('active');
