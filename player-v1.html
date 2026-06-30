@@ -11,15 +11,10 @@ body {
   min-height: 100vh; 
   background: radial-gradient(circle at top, #12213a, #070b14 60%); 
   color: #eaf2ff; 
-  padding: 16px; 
-  overflow-x: hidden;
+  padding: 12px; 
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-/* FORCE LANDSCAPE */
-@media (max-height: 500px) {
-  body { padding: 12px; }
 }
 
 body::before, body::after { 
@@ -35,8 +30,8 @@ body::before, body::after {
 body::before { background: #00ff99; top: -100px; left: -120px; }
 body::after { background: #3b82f6; bottom: -120px; right: -120px; }
 
-h1 { font-size: 1.8rem; letter-spacing: 1px; margin-bottom: 6px; color: #00ffb3; }
-p { color: #9fb0c8; }
+h1 { font-size: 1.4rem; letter-spacing: 1px; margin-bottom: 2px; color: #00ffb3; }
+p { color: #9fb0c8; font-size: 0.9rem; margin-bottom: 0; }
 
 /* JOIN SCREEN */
 #joinScreen { max-width: 480px; margin: 0 auto; }
@@ -44,9 +39,9 @@ input { width: 100%; padding: 14px 16px; margin: 8px 0; background: rgba(255,255
 input:focus { border-color: #00ffb3; background: rgba(0,255,179,0.05); box-shadow: 0 0 0 3px rgba(0,255,179,0.1); }
 input::placeholder { color: #4a6080; }
 button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px; font-weight: 600; transition: 0.25s ease; }
-button { width: 100%; padding: 16px; margin-top: 14px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 18px; font-weight: 700; }
-button:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
-button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #2b3b55; }
+#btnJoin { width: 100%; padding: 16px; margin-top: 14px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; font-size: 18px; font-weight: 700; }
+#btnJoin:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,255,153,0.35); }
+#btnJoin:disabled { background: #1a2233; color: #445; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #2b3b55; }
 
 #status { margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); min-height: 48px; font-size: 15px; }
 .ok { color: #00ff99; } .err { color: #ff4d4d; } .inf { color: #ffd166; }
@@ -59,62 +54,96 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 .pulse:nth-child(3) { animation-delay: 0.4s; }
 @keyframes pulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-/* GAME SCREEN - SIDE BY SIDE */
-#gameScreen { display: none; flex: 1; }
-#turnBanner { padding: 8px 12px; border-radius: 10px; text-align: center; font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+/* GAME SCREEN */
+#gameScreen { 
+  display: none; 
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+#turnBanner { 
+  padding: 6px 12px; 
+  border-radius: 8px; 
+  text-align: center; 
+  font-size: 0.85rem; 
+  font-weight: 700; 
+  margin-bottom: 8px; 
+  background: rgba(255,255,255,0.05); 
+  border: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
 #turnBanner.my-turn { background: rgba(0,255,153,0.1); border-color: #00ff99; color: #00ff99; }
 #turnBanner.waiting-turn { background: rgba(255,170,0,0.1); border-color: #ffaa00; color: #ffaa00; }
 
-#shotResult { min-height: 30px; text-align: center; font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+#shotResult { 
+  min-height: 20px; 
+  text-align: center; 
+  font-size: 0.9rem; 
+  font-weight: 700; 
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
 
-/* BOARDS GRID */
+/* BOARDS GRID - FLEX LAYOUT */
 #boardsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
   flex: 1;
-  margin-bottom: 12px;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+#boardsGrid.vertical {
+  flex-direction: column;
 }
 
 .boardPanel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .boardHeader { 
   display: flex; 
   align-items: center; 
-  gap: 8px; 
-  margin-bottom: 4px;
+  gap: 6px; 
+  flex-shrink: 0;
 }
 
-.colorDot { width: 18px; height: 18px; border-radius: 50%; }
-.playerName { font-size: 0.95rem; color: #00ffb3; font-weight: 700; }
-.boardInfo { color: #9fb0c8; font-size: 11px; }
+.colorDot { width: 14px; height: 14px; border-radius: 50%; }
+.playerName { font-size: 0.8rem; color: #00ffb3; font-weight: 700; }
+.boardInfo { color: #9fb0c8; font-size: 10px; }
 
 /* BOARD WITH COORDINATES */
 .boardWrapper {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .coordinatesY {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 10px;
+  font-size: 8px;
   color: #9fb0c8;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .coordinateY {
-  width: 20px;
-  height: 24px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -123,22 +152,26 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 .boardWithCoordinates {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .coordinatesX {
   display: flex;
   gap: 1px;
-  justify-content: flex-start;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .coordinateX {
-  width: 24px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 8px;
   color: #9fb0c8;
   font-weight: 600;
 }
@@ -148,14 +181,18 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
   gap: 1px; 
   background: #1a2a40; 
   border: 1px solid #1a2a40;
+  padding: 0;
+  overflow: auto;
 }
 
 .cell { 
-  width: 24px; 
-  height: 24px; 
+  width: 18px; 
+  height: 18px; 
   background: #0a1520; 
   transition: 0.15s; 
   cursor: default;
+  border: 0.5px solid #1a2a40;
+  flex-shrink: 0;
 }
 
 .cell.clickable { cursor: pointer; }
@@ -164,62 +201,48 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
 .cell.hit { background: rgba(255,77,77,0.7); }
 .cell.miss { background: rgba(80,80,100,0.5); }
 
-/* BUTTONS */
-#btnHide { 
+/* BUTTONS CONTAINER */
+#controlsContainer {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+#btnHide, #orientationToggle { 
   background: rgba(255,255,255,0.08); 
   color: #eaf2ff; 
   border: 1px solid rgba(255,255,255,0.15); 
-  font-size: 13px; 
-  padding: 10px; 
-  width: 100%;
-  margin-top: 8px;
+  font-size: 11px; 
+  padding: 8px 10px;
+  flex: 1;
+  border-radius: 8px;
 }
-#btnHide:hover { background: rgba(255,255,255,0.14); transform: none; box-shadow: none; }
+
+#btnHide:hover, #orientationToggle:hover { 
+  background: rgba(255,255,255,0.14); 
+  transform: none; 
+  box-shadow: none; 
+}
 
 /* GAME OVER */
 #gameOver { 
   display: none; 
   text-align: center; 
-  padding: 20px; 
-  border-radius: 16px; 
+  padding: 16px; 
+  border-radius: 12px; 
   background: rgba(0,255,153,0.1); 
   border: 2px solid #00ff99; 
-  margin-top: 12px; 
+  margin-top: 8px; 
+  flex-shrink: 0;
 }
-#gameOver h2 { color: #00ff99; font-size: 1.6rem; margin-bottom: 8px; }
-
-/* MOBILE LANDSCAPE */
-@media (max-height: 500px) {
-  h1 { font-size: 1.2rem; }
-  p { font-size: 0.9rem; margin-bottom: 8px; }
-  #turnBanner { font-size: 0.85rem; padding: 6px 10px; }
-  .cell { width: 20px; height: 20px; }
-  .coordinateX, .coordinateY { font-size: 9px; }
-  #boardsGrid { gap: 12px; margin-bottom: 8px; }
-  .boardPanel { gap: 4px; }
-  .playerName { font-size: 0.85rem; }
-}
-
-/* ORIENTATION TOGGLE */
-#orientationToggle {
-  background: rgba(255,255,255,0.08);
-  color: #eaf2ff;
-  border: 1px solid rgba(255,255,255,0.15);
-  font-size: 12px;
-  padding: 8px;
-  margin-top: 8px;
-  width: 100%;
-}
-#orientationToggle:hover {
-  background: rgba(255,255,255,0.14);
-  transform: none;
-}
+#gameOver h2 { color: #00ff99; font-size: 1.4rem; margin-bottom: 6px; }
+#gameOver p { font-size: 0.85rem; }
 </style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.4.0</p>
+<p>Gracz — v0.4.1</p>
 
 <div id="joinScreen">
   <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
@@ -258,7 +281,6 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
           <div id="boardGrid"></div>
         </div>
       </div>
-      <button id="btnHide">👁 Ukryj</button>
     </div>
 
     <!-- MAPA WROGA -->
@@ -278,7 +300,10 @@ button:disabled { background: #1a2233; color: #445; cursor: not-allowed; transfo
     </div>
   </div>
 
-  <button id="orientationToggle">🔄 Orientacja</button>
+  <div id="controlsContainer">
+    <button id="btnHide">👁 Ukryj</button>
+    <button id="orientationToggle">🔄</button>
+  </div>
 </div>
 
 <div id="gameOver">
@@ -308,6 +333,7 @@ let currentRoom = null;
 let myBoardSize = 10;
 let boardHidden = false;
 let isShooting = false;
+let isVertical = false;
 
 const urlParams = new URLSearchParams(window.location.search);
 const codeFromUrl = urlParams.get('code');
@@ -442,7 +468,7 @@ function renderCoordinates(boardSize, isEnemy = false) {
 function renderBoard(board, boardSize, isMyBoard, targetPlayerId, isEnemy = false) {
   const gridId = isEnemy ? '#enemyBoardGrid' : '#boardGrid';
   const grid = document.querySelector(gridId);
-  grid.style.gridTemplateColumns = `repeat(${boardSize}, 24px)`;
+  grid.style.gridTemplateColumns = `repeat(${boardSize}, 18px)`;
   grid.innerHTML = '';
 
   for (let i = 0; i < board.length; i++) {
@@ -480,11 +506,10 @@ function updateGameDisplay(players) {
   if (myPlayer?.board) {
     const myBoardData = typeof myPlayer.board === 'string' ? JSON.parse(myPlayer.board) : myPlayer.board;
     const myBoardSize = Math.sqrt(myBoardData.length);
-    myBoardSize = myBoardSize;
     
     document.getElementById('myColorDot').style.backgroundColor = myPlayer.color;
     document.getElementById('myPlayerName').textContent = myPlayer.name + ' (Ty)';
-    document.getElementById('myBoardInfo').textContent = `Statków: ${myPlayer.ships ? (typeof myPlayer.ships === 'string' ? JSON.parse(myPlayer.ships) : myPlayer.ships).length : 0} | Plansza: ${myBoardSize}×${myBoardSize}`;
+    document.getElementById('myBoardInfo').textContent = `${myBoardSize}×${myBoardSize} | Statki: ${myPlayer.ships ? (typeof myPlayer.ships === 'string' ? JSON.parse(myPlayer.ships) : myPlayer.ships).length : 0}`;
     
     renderBoard(myBoardData, myBoardSize, true, myPlayerId, false);
   }
@@ -495,7 +520,7 @@ function updateGameDisplay(players) {
     
     document.getElementById('enemyColorDot').style.backgroundColor = enemy.color;
     document.getElementById('enemyPlayerName').textContent = enemy.name;
-    document.getElementById('enemyBoardInfo').textContent = `Statków: ${enemy.ships ? (typeof enemy.ships === 'string' ? JSON.parse(enemy.ships) : enemy.ships).length : 0} | Plansza: ${enemyBoardSize}×${enemyBoardSize}`;
+    document.getElementById('enemyBoardInfo').textContent = `${enemyBoardSize}×${enemyBoardSize} | Statki: ${enemy.ships ? (typeof enemy.ships === 'string' ? JSON.parse(enemy.ships) : enemy.ships).length : 0}`;
     
     renderBoard(enemyBoardData, enemyBoardSize, false, enemy.id, true);
   }
@@ -540,12 +565,11 @@ document.getElementById('btnHide').onclick = () => {
 
 document.getElementById('orientationToggle').onclick = () => {
   const grid = document.getElementById('boardsGrid');
-  if (grid.style.gridTemplateColumns === '1fr') {
-    grid.style.gridTemplateColumns = '1fr 1fr';
-    document.getElementById('orientationToggle').textContent = '📱 Orientacja';
+  isVertical = !isVertical;
+  if (isVertical) {
+    grid.classList.add('vertical');
   } else {
-    grid.style.gridTemplateColumns = '1fr';
-    document.getElementById('orientationToggle').textContent = '💻 Orientacja';
+    grid.classList.remove('vertical');
   }
 };
 
