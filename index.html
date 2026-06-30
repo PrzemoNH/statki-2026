@@ -107,32 +107,32 @@ h1 {
   flex-direction: column;
 }
 
-.btn-host {
+.btn-host-create {
   background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
   color: white;
 }
 
-.btn-host:hover {
+.btn-host-create:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255,107,107,0.3);
 }
 
-.btn-preview {
+.btn-host-join {
   background: linear-gradient(135deg, #ffd166, #ffb700);
   color: #06121f;
 }
 
-.btn-preview:hover {
+.btn-host-join:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255,209,102,0.3);
 }
 
-.btn-join {
+.btn-player {
   background: linear-gradient(135deg, #00ff99, #00c2ff);
   color: #06121f;
 }
 
-.btn-join:hover {
+.btn-player:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0,255,153,0.3);
 }
@@ -179,13 +179,13 @@ h1 {
       </div>
       <p class="game-desc">Dwie osobne mapy — gracz i wróg. Tradycyjna rozgrywka dla 2-4 graczy.</p>
       <div class="button-group">
-        <a href="host-v1.html" class="btn btn-host">
-          📺 Host
+        <a href="host-v1.html" class="btn btn-host-create">
+          📺 Host<br><small>Utwórz</small>
         </a>
-        <a href="host-v1.html?mode=preview" class="btn btn-preview">
-          👁 Podgląd
+        <a href="host-v1.html?mode=join" class="btn btn-host-join">
+          📺 Host<br><small>Dołącz</small>
         </a>
-        <a href="player-v1.html" class="btn btn-join">
+        <a href="player-v1.html" class="btn btn-player">
           📱 Gracz
         </a>
       </div>
@@ -200,10 +200,10 @@ h1 {
       <p class="game-desc">Nowe zasady i mechaniki. Wkrótce dostępne!</p>
       <div class="button-group">
         <button class="btn btn-disabled" disabled>
-          📺 Host
+          📺 Host<br><small>Utwórz</small>
         </button>
         <button class="btn btn-disabled" disabled>
-          👁 Podgląd
+          📺 Host<br><small>Dołącz</small>
         </button>
         <button class="btn btn-disabled" disabled>
           📱 Gracz
