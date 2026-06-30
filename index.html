@@ -86,7 +86,7 @@ h1 {
 
 .button-group { 
   display: grid; 
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
@@ -107,34 +107,24 @@ h1 {
   flex-direction: column;
 }
 
-.btn-host-create {
+.btn-create {
   background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
   color: white;
 }
 
-.btn-host-create:hover {
+.btn-create:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255,107,107,0.3);
 }
 
-.btn-host-join {
+.btn-join {
   background: linear-gradient(135deg, #ffd166, #ffb700);
   color: #06121f;
 }
 
-.btn-host-join:hover {
+.btn-join:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(255,209,102,0.3);
-}
-
-.btn-player {
-  background: linear-gradient(135deg, #00ff99, #00c2ff);
-  color: #06121f;
-}
-
-.btn-player:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0,255,153,0.3);
 }
 
 .btn-disabled {
@@ -179,14 +169,11 @@ h1 {
       </div>
       <p class="game-desc">Dwie osobne mapy — gracz i wróg. Tradycyjna rozgrywka dla 2-4 graczy.</p>
       <div class="button-group">
-        <a href="host-v1.html" class="btn btn-host-create">
-          📺 Host<br><small>Utwórz</small>
+        <a href="host-v1.html" class="btn btn-create">
+          🎯 Utwórz<br><small>Pokój</small>
         </a>
-        <a href="host-v1.html?mode=join" class="btn btn-host-join">
-          📺 Host<br><small>Dołącz</small>
-        </a>
-        <a href="player-v1.html" class="btn btn-player">
-          📱 Gracz
+        <a href="host-v1.html?mode=join" class="btn btn-join">
+          📺 Dołącz do<br><small>Pokoju</small>
         </a>
       </div>
     </div>
@@ -200,13 +187,10 @@ h1 {
       <p class="game-desc">Nowe zasady i mechaniki. Wkrótce dostępne!</p>
       <div class="button-group">
         <button class="btn btn-disabled" disabled>
-          📺 Host<br><small>Utwórz</small>
+          🎯 Utwórz<br><small>Pokój</small>
         </button>
         <button class="btn btn-disabled" disabled>
-          📺 Host<br><small>Dołącz</small>
-        </button>
-        <button class="btn btn-disabled" disabled>
-          📱 Gracz
+          📺 Dołącz do<br><small>Pokoju</small>
         </button>
       </div>
     </div>
