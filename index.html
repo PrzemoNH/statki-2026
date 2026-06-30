@@ -42,7 +42,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.3.4</p>
+<p>Panel hosta — v0.3.5</p>
 
 <button id="btnCreate">UTWÓRZ POKÓJ</button>
 
@@ -63,7 +63,6 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <div id="boardsContainer"></div>
 <div id="debug"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="js/game/board.js"></script>
 <script src="js/game/rules.js"></script>
 <script src="js/game/placement.js"></script>
@@ -71,7 +70,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.3.4',
+  VERSION: '0.3.5',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -79,6 +78,8 @@ const CONFIG = {
 
 const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+const QRCode = (await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm')).default;
 
 const debug = document.getElementById('debug');
 let roomCode = null;
