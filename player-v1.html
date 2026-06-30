@@ -208,7 +208,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   flex-shrink: 0;
 }
 
-#btnHide, #orientationToggle { 
+#btnHide { 
   background: rgba(255,255,255,0.08); 
   color: #eaf2ff; 
   border: 1px solid rgba(255,255,255,0.15); 
@@ -218,7 +218,28 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   border-radius: 8px;
 }
 
-#btnHide:hover, #orientationToggle:hover { 
+#btnHide:hover { 
+  background: rgba(255,255,255,0.14); 
+  transform: none; 
+  box-shadow: none; 
+}
+
+#orientationToggle {
+  background: rgba(255,255,255,0.08); 
+  color: #eaf2ff; 
+  border: 1px solid rgba(255,255,255,0.15); 
+  font-size: 18px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#orientationToggle:hover { 
   background: rgba(255,255,255,0.14); 
   transform: none; 
   box-shadow: none; 
@@ -242,7 +263,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.4.1</p>
+<p>Gracz — v0.4.2</p>
 
 <div id="joinScreen">
   <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
