@@ -18,7 +18,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #btnStart { width: 100%; margin-top: 18px; padding: 16px; font-size: 18px; background: #1a2233; color: #667; border: 1px solid #2b3b55; }
 #btnStart.ready { background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; box-shadow: 0 0 25px rgba(0,255,153,0.25); }
 #roomBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-#roomCode { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 16px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
+#roomCodeBig { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 16px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
 #qrBox { text-align: center; margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; }
 #qrBox p { color: #9fb0c8; font-size: 13px; margin-bottom: 10px; }
 #qrCanvas { border-radius: 8px; }
@@ -26,7 +26,11 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 .player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; }
 #debug { margin-top: 22px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; max-height: 180px; overflow: auto; }
 .ok { color: #00ff99; } .err { color: #ff4d4d; } .inf { color: #ffd166; }
-#boardsContainer { display: none; margin-top: 26px; display: grid; gap: 20px; }
+#gameHeader { display: none; padding: 16px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08); margin: -24px -24px 24px -24px; padding-left: 24px; padding-right: 24px; }
+#gameHeader.active { display: flex; align-items: center; justify-content: space-between; }
+#roomCodeSmall { font-size: 1.8rem; letter-spacing: 6px; color: #00ffb3; font-weight: 800; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
+#boardsContainer { display: none; margin-top: 26px; gap: 20px; }
+#boardsContainer.active { display: grid; }
 .boardCard { padding: 16px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
 .boardTitle { font-size: 1.1rem; color: #00ffb3; margin-bottom: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .colorBadge { width: 20px; height: 20px; border-radius: 50%; }
@@ -37,6 +41,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 .boardStats { margin-top: 8px; font-size: 12px; color: #9fb0c8; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 @media (min-width: 1200px) { #boardsContainer { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1600px) { #boardsContainer { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 768px) { #boardsContainer { grid-template-columns: 1fr; } #gameHeader { flex-direction: column; gap: 10px; align-items: flex-start; } }
 </style>
 </head>
 <body>
@@ -48,7 +53,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
-  <div id="roomCode">-----</div>
+  <div id="roomCodeBig">-----</div>
 
   <div id="qrBox">
     <p>📱 Zeskanuj aby dołączyć:</p>
@@ -58,6 +63,11 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   <p style="margin-top:16px">Gracze:</p>
   <div id="playerList"></div>
   <button id="btnStart" disabled>⚠️ Min. 2 graczy</button>
+</div>
+
+<div id="gameHeader">
+  <div id="roomCodeSmall">-----</div>
+  <div style="color: #9fb0c8; font-size: 14px;">Kod pokoju</div>
 </div>
 
 <div id="boardsContainer"></div>
@@ -84,6 +94,7 @@ const QRCode = (await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm')).
 const debug = document.getElementById('debug');
 let roomCode = null;
 let hostId = null;
+let gameStarted = false;
 
 function log(msg, type='inf') {
   const d = document.createElement('div');
@@ -131,10 +142,10 @@ function renderMiniBoard(board) {
 function renderBoards(players) {
   const container = document.getElementById('boardsContainer');
   if (players.length < 2 || !players[0].board) {
-    container.style.display = 'none';
+    container.classList.remove('active');
     return;
   }
-  container.style.display = 'grid';
+  container.classList.add('active');
   container.innerHTML = '';
   const firstBoard = typeof players[0].board === 'string' ? JSON.parse(players[0].board) : players[0].board;
   const boardSize = Math.sqrt(firstBoard.length);
@@ -189,7 +200,7 @@ function render(players) {
     </div>
   `).join('');
   updateGameInfo(players);
-  renderBoards(players);
+  if (gameStarted) renderBoards(players);
 }
 
 function startPolling() {
@@ -213,7 +224,7 @@ document.getElementById('btnCreate').onclick = async () => {
       .select().single();
     if (error) { log('❌ ' + error.message, 'err'); return; }
     roomCode = room.code;
-    document.getElementById('roomCode').textContent = room.code;
+    document.getElementById('roomCodeBig').textContent = room.code;
     document.getElementById('roomBox').style.display = 'block';
     log('✅ Pokój: ' + room.code, 'ok');
     generateQR(room.code);
@@ -250,6 +261,13 @@ document.getElementById('btnStart').onclick = async () => {
         turn_order: turnOrder
       }).eq('code', roomCode);
       log('🎯 Gra rozpoczęta! Pierwszy: ' + players.find(p => p.id === firstPlayer)?.name, 'ok');
+      
+      // Ukryj panel, pokaż grę
+      gameStarted = true;
+      document.getElementById('roomBox').style.display = 'none';
+      document.getElementById('gameHeader').classList.add('active');
+      document.getElementById('roomCodeSmall').textContent = roomCode;
+      renderBoards(players);
     }
   } catch (e) {
     log('❌ ' + e.message, 'err');
