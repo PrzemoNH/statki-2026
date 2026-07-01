@@ -12,7 +12,6 @@ body {
   background: radial-gradient(circle at top, #12213a, #070b14 60%); 
   color: #eaf2ff; 
   padding: 12px; 
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -156,7 +155,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   gap: 2px;
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .coordinatesY {
@@ -175,6 +174,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 #boardGrid, #enemyBoardGrid { 
@@ -264,7 +264,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.4.4</p>
+<p>Gracz — v0.4.5</p>
 
 <div id="joinScreen">
   <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
