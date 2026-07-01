@@ -1,7 +1,7 @@
 /**
  * BOARD.JS — Logika manipulacji planszą + RENDERING
  * Zarządza stanem pola: woda, statek, trafienie
- * NOWE: Renderowanie współrzędnych PRZYCZEPIONYCH do mapy
+ * Renderowanie współrzędnych PRZYCZEPIONYCH do mapy (scrollują razem)
  */
 
 const BOARD = {
@@ -81,39 +81,37 @@ const BOARD = {
   },
 
   /**
-   * ✨ NOWE: Generuje HTML współrzędnych przyczepionych do mapy
-   * Zwraca obiekt { coordsYHtml, coordsXHtml }
-   */
-  renderCoordinatesHTML(boardSize) {
-    let coordsYHtml = '<div class="coordinatesY">';
-    let coordsXHtml = '<div class="coordinatesX">';
-    
-    for (let i = 0; i < boardSize; i++) {
-      coordsYHtml += `<div class="coordinateY">${i + 1}</div>`;
-      coordsXHtml += `<div class="coordinateX">${this.COORD_LETTERS[i]}</div>`;
-    }
-    
-    coordsYHtml += '</div>';
-    coordsXHtml += '</div>';
-    
-    return { coordsYHtml, coordsXHtml };
-  },
-
-  /**
-   * ✨ NOWE: Generuje HTML mapy + współrzędne razem
-   * Współrzędne są PRZYCZEPIĘTЕ do mapy i rosną razem!
+   * Generuje HTML mapy + współrzędne razem.
+   * Współrzędne X są WEWNĄTRZ scrollowalnego kontenera razem z mapą — scrollują razem.
+   * Zamiast serializować funkcję do onclick, używamy data-atrybutów;
+   * kliknięcia podpina wywołujący kod (player.js) przez addEventListener.
    */
   renderBoardHTML(board, boardSize, isMyBoard = false, targetPlayerId = null, onClickCell = null) {
-    const { coordsYHtml, coordsXHtml } = this.renderCoordinatesHTML(boardSize);
-    
+    // Współrzędne Y (boczne — lewa kolumna). Pierwszy element to pusty spacer
+    // wyrównujący z rzędem liter na górze.
+    let coordsYHtml = '<div class="coordinatesY">';
+    coordsYHtml += '<div class="coordinateY"> </div>';
+    for (let i = 0; i < boardSize; i++) {
+      coordsYHtml += `<div class="coordinateY">${i + 1}</div>`;
+    }
+    coordsYHtml += '</div>';
+
+    // Współrzędne X (górne — nad mapą)
+    let coordsXHtml = '<div class="coordinatesX">';
+    for (let i = 0; i < boardSize; i++) {
+      coordsXHtml += `<div class="coordinateX">${this.COORD_LETTERS[i]}</div>`;
+    }
+    coordsXHtml += '</div>';
+
+    // Kratki
     let cellsHtml = '';
     for (let i = 0; i < board.length; i++) {
       const cell = board[i];
       const row = Math.floor(i / boardSize);
       const col = i % boardSize;
-      
+
       let classStr = 'cell';
-      
+
       if (isMyBoard) {
         if (cell.state === 'ship') classStr += ' ship';
         if (cell.hit && cell.state === 'ship') classStr += ' hit';
@@ -121,31 +119,32 @@ const BOARD = {
       } else {
         if (cell.hit && cell.state === 'ship') classStr += ' hit';
         else if (cell.hit && cell.state === 'water') classStr += ' miss';
-        else if (!cell.hit && onClickCell) {
-          classStr += ' clickable';
-        }
+        else if (!cell.hit && onClickCell) classStr += ' clickable';
       }
-      
-      const clickAttr = (!isMyBoard && !cell.hit && onClickCell) 
-        ? `onclick="(${onClickCell.toString()})(${row}, ${col})"` 
+
+      const dataAttrs = (!isMyBoard && !cell.hit && onClickCell)
+        ? `data-row="${row}" data-col="${col}" data-target="${targetPlayerId}"`
         : '';
-      
-      cellsHtml += `<div class="${classStr}" ${clickAttr}></div>`;
+
+      cellsHtml += `<div class="${classStr}" ${dataAttrs}></div>`;
     }
-    
-    // Struktura: współrzędne górne → współrzędne boczne + mapa
+
+    // Struktura: coordsY po lewej; po prawej: coordsX nad mapą + mapa,
+    // oba wewnątrz .boardColumn, całość wewnątrz jednego scrollowalnego .boardWithCoordinates
     const html = `
       <div class="boardWrapper">
-        ${coordsXHtml}
         <div class="boardWithCoordinates">
           ${coordsYHtml}
-          <div class="miniBoard" style="display: inline-grid; gap: 1px; grid-template-columns: repeat(${boardSize}, 16px);">
-            ${cellsHtml}
+          <div class="boardColumn">
+            ${coordsXHtml}
+            <div class="miniBoard" style="display:inline-grid; gap:1px; grid-template-columns:repeat(${boardSize}, 16px);">
+              ${cellsHtml}
+            </div>
           </div>
         </div>
       </div>
     `;
-    
+
     return html;
   }
 };
