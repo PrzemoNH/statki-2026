@@ -26,6 +26,12 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #qrBox { text-align: center; margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; }
 #qrBox p { color: #9fb0c8; font-size: 13px; margin-bottom: 10px; }
 #qrCanvas { border-radius: 8px; }
+
+/* QR dla trybu join */
+#joinQrBox { text-align: center; margin: 16px 0; padding: 16px; background: rgba(255,255,255,0.02); border-radius: 12px; display: none; }
+#joinQrBox p { color: #9fb0c8; font-size: 13px; margin-bottom: 10px; }
+#joinQrCanvas { border-radius: 8px; }
+
 #playerList { margin-top: 10px; }
 .player-item { padding: 12px 14px; margin: 8px 0; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; gap: 10px; }
 #debug { margin-top: 22px; padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; max-height: 150px; overflow: auto; }
@@ -35,7 +41,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #gameHeader.active { display: flex; align-items: center; justify-content: space-between; }
 #roomCodeSmall { font-size: 1.8rem; letter-spacing: 6px; color: #00ffb3; font-weight: 800; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
 
-#boardsContainer { display: none; margin-top: 20px; gap: 16px; }
+#boardsContainer { display: none; margin-top: 20px; gap: 16px; overflow-y: auto; max-height: calc(100vh - 300px); }
 #boardsContainer.active { display: grid; }
 
 /* RESPONSIVE GRID */
@@ -79,6 +85,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 .boardWithCoordinates {
   display: flex;
   gap: 2px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .coordinatesY {
@@ -97,32 +105,51 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .miniBoard { display: inline-grid; gap: 1px; }
-.miniCell { width: 14px; height: 14px; background: #0a1520; border: 0.5px solid #1a2a40; }
+.miniCell { width: 14px; height: 14px; background: #0a1520; border: 0.5px solid #1a2a40; flex-shrink: 0; }
 .miniCell.hit { background: rgba(255,77,77,0.6); border: 0.5px solid #ff4d4d; }
 .miniCell.miss { background: rgba(100,100,100,0.3); border: 0.5px solid #666; }
 
 .boardStats { margin-top: 8px; font-size: 11px; color: #9fb0c8; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 
+/* MEDIA QUERIES DLA ROTATE */
 @media (max-height: 600px) {
   h1 { font-size: 1.6rem; }
   p { font-size: 0.9rem; margin-bottom: 8px; }
   #roomBox { padding: 14px; }
   .boardCard { padding: 10px; }
   .miniCell { width: 12px; height: 12px; }
-  .coordinateX, .coordinateY { width: 12px; height: 12px; }
+  .coordinateX, .coordinateY { width: 12px; height: 12px; font-size: 7px; }
   .boardTitle { font-size: 0.9rem; margin-bottom: 6px; }
   .boardInfo { font-size: 10px; margin-bottom: 6px; }
   .boardStats { font-size: 10px; }
+  #roomCodeBig { font-size: 1.8rem; letter-spacing: 6px; }
+  #qrBox { padding: 10px; margin: 8px 0; }
+  #qrCanvas { width: 140px !important; height: 140px !important; }
+  #joinQrCanvas { width: 140px !important; height: 140px !important; }
+}
+
+@media (max-height: 400px) {
+  h1 { font-size: 1.2rem; }
+  body { padding: 10px; }
+  #roomBox { padding: 10px; margin-top: 10px; }
+  #qrBox { display: none; }
+  #joinQrBox { display: none !important; }
+}
+
+@media (orientation: landscape) {
+  body { padding: 12px; }
+  #boardsContainer { max-height: calc(100vh - 180px); }
 }
 </style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.5.2</p>
+<p>Panel hosta — v0.5.4</p>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
@@ -141,6 +168,12 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <div id="joinBox">
   <p>Wpisz kod pokoju:</p>
   <input id="inputJoinCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
+  
+  <div id="joinQrBox">
+    <p>📱 Lub zeskanuj:</p>
+    <canvas id="joinQrCanvas"></canvas>
+  </div>
+
   <button id="btnConfirmJoin">🔍 DOŁĄCZ</button>
   <div id="joinStatus"></div>
 </div>
@@ -160,7 +193,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.5.2',
+  VERSION: '0.5.4',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
@@ -201,16 +234,16 @@ function generateCode() {
        + d[Math.random()*d.length|0] + d[Math.random()*d.length|0];
 }
 
-function generateQR(code) {
+function generateQR(code, canvasId = 'qrCanvas') {
   const url = window.location.origin + '/player-v1.html?code=' + code;
-  const canvas = document.getElementById('qrCanvas');
+  const canvas = document.getElementById(canvasId);
   QRCode.toCanvas(canvas, url, {
     width: 200,
     margin: 1,
     color: { dark: '#00ffb3', light: '#070b14' }
   }, (err) => {
     if (err) log('⚠️ QR błąd: ' + err.message, 'inf');
-    else log('✅ QR wygenerowany', 'ok');
+    else log('✅ QR wygenerowany' + (canvasId === 'joinQrCanvas' ? ' (join mode)' : ''), 'ok');
   });
 }
 
@@ -320,7 +353,7 @@ function startPolling() {
 
 hostId = generateHostId();
 
-// INICJALIZACJA - Jeśli mode=join, pokazuj input. W przeciwnym razie auto-twórz pokój.
+// INICJALIZACJA
 if (modeJoin) {
   document.getElementById('joinBox').style.display = 'block';
   document.getElementById('roomBox').style.display = 'none';
@@ -339,13 +372,24 @@ if (modeJoin) {
       document.getElementById('roomCodeBig').textContent = room.code;
       document.getElementById('roomBox').style.display = 'block';
       log('✅ Pokój: ' + room.code, 'ok');
-      generateQR(room.code);
+      generateQR(room.code, 'qrCanvas');
       startPolling();
     } catch (e) {
       log('❌ ' + e.message, 'err');
     }
   })();
 }
+
+// Pokazuj QR gdy wpiszesz kod w trybie join
+document.getElementById('inputJoinCode').oninput = () => {
+  const code = document.getElementById('inputJoinCode').value.trim().toUpperCase();
+  if (code.length === 5) {
+    document.getElementById('joinQrBox').style.display = 'block';
+    generateQR(code, 'joinQrCanvas');
+  } else {
+    document.getElementById('joinQrBox').style.display = 'none';
+  }
+};
 
 // DOŁĄCZ DO POKOJU (dla mode=join)
 document.getElementById('btnConfirmJoin').onclick = async () => {
@@ -362,7 +406,9 @@ document.getElementById('btnConfirmJoin').onclick = async () => {
     document.getElementById('joinBox').style.display = 'none';
     document.getElementById('roomBox').style.display = 'block';
     document.getElementById('roomCodeBig').textContent = roomCode;
+    document.getElementById('joinQrBox').style.display = 'none';
     log('✅ Połączono z pokojem: ' + room.code, 'ok');
+    generateQR(room.code, 'qrCanvas');
     startPolling();
   } catch (e) {
     document.getElementById('joinStatus').innerHTML = '<span class="err">❌ ' + e.message + '</span>';
