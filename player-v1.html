@@ -183,10 +183,10 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   flex-shrink: 0;
 }
 
-#boardGrid, #enemyBoardGrid { 
-  display: inline-grid; 
-  gap: 1px; 
-  background: #1a2a40; 
+.miniBoard {
+  display: inline-grid;
+  gap: 1px;
+  background: #1a2a40;
   border: 1px solid #1a2a40;
   padding: 0;
   flex-shrink: 0;
@@ -275,7 +275,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   .coordinateX { width: 14px; height: 14px; font-size: 8px; }
   .coordinateY { width: 14px; height: 14px; font-size: 8px; }
   .coordinatesX { height: 14px; }
-  #boardGrid, #enemyBoardGrid { gap: 0.5px; }
+  .miniBoard { gap: 0.5px; }
   .cell { width: 14px; height: 14px; }
 }
 
@@ -287,7 +287,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.4.6</p>
+<p>Gracz — v0.4.7</p>
 
 <div id="joinScreen">
   <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
@@ -319,13 +319,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
         <span class="playerName" id="myPlayerName">Moja mapa</span>
       </div>
       <div class="boardInfo" id="myBoardInfo"></div>
-      <div class="boardWrapper">
-        <div class="coordinatesX" id="coordinatesX"></div>
-        <div class="boardWithCoordinates">
-          <div class="coordinatesY" id="coordinatesY"></div>
-          <div id="boardGrid"></div>
-        </div>
-      </div>
+      <div id="myBoardContainer"></div>
     </div>
 
     <!-- MAPA WROGA -->
@@ -335,13 +329,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
         <span class="playerName" id="enemyPlayerName">Wróg</span>
       </div>
       <div class="boardInfo" id="enemyBoardInfo"></div>
-      <div class="boardWrapper">
-        <div class="coordinatesX" id="enemyCoordinatesX"></div>
-        <div class="boardWithCoordinates">
-          <div class="coordinatesY" id="enemyCoordinatesY"></div>
-          <div id="enemyBoardGrid"></div>
-        </div>
-      </div>
+      <div id="enemyBoardContainer"></div>
     </div>
   </div>
 
@@ -356,6 +344,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   <p id="gameOverMsg"></p>
 </div>
 
+<script src="js/game/board.js"></script>
+
 <script>
 const CONFIG = {
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
@@ -368,7 +358,6 @@ const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/su
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const COLORS = ['#ff4444','#4488ff','#ffaa00','#aa44ff'];
-const COORD_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
 
 let myPlayerId = null;
 let myColor = null;
@@ -487,59 +476,11 @@ function showGameOver(iWon, enemyName) {
   document.getElementById('gameOverMsg').textContent = iWon ? 'Zatopiłeś wszystkie statki ' + enemyName + '!' : enemyName + ' zatopił wszystkie twoje statki!';
 }
 
-function renderCoordinates(boardSize, isEnemy = false) {
-  const yPrefix = isEnemy ? '#enemyCoordinatesY' : '#coordinatesY';
-  const xPrefix = isEnemy ? '#enemyCoordinatesX' : '#coordinatesX';
-  
-  const yDiv = document.querySelector(yPrefix);
-  const xDiv = document.querySelector(xPrefix);
-  
-  yDiv.innerHTML = '';
-  xDiv.innerHTML = '';
-  
-  for (let i = 0; i < boardSize; i++) {
-    const yCoord = document.createElement('div');
-    yCoord.className = 'coordinateY';
-    yCoord.textContent = (i + 1);
-    yDiv.appendChild(yCoord);
-    
-    const xCoord = document.createElement('div');
-    xCoord.className = 'coordinateX';
-    xCoord.textContent = COORD_LETTERS[i];
-    xDiv.appendChild(xCoord);
-  }
-}
-
-function renderBoard(board, boardSize, isMyBoard, targetPlayerId, isEnemy = false) {
-  const gridId = isEnemy ? '#enemyBoardGrid' : '#boardGrid';
-  const grid = document.querySelector(gridId);
-  grid.style.gridTemplateColumns = `repeat(${boardSize}, 16px)`;
-  grid.innerHTML = '';
-
-  for (let i = 0; i < board.length; i++) {
-    const cell = board[i];
-    const row = Math.floor(i / boardSize);
-    const col = i % boardSize;
-    const cellDiv = document.createElement('div');
-    cellDiv.className = 'cell';
-
-    if (isMyBoard) {
-      if (cell.state === 'ship') cellDiv.classList.add('ship');
-      if (cell.hit && cell.state === 'ship') cellDiv.classList.add('hit');
-      if (cell.hit && cell.state === 'water') cellDiv.classList.add('miss');
-    } else {
-      if (cell.hit && cell.state === 'ship') cellDiv.classList.add('hit');
-      else if (cell.hit && cell.state === 'water') cellDiv.classList.add('miss');
-      else if (!cell.hit && isMyTurn()) {
-        cellDiv.classList.add('clickable');
-        cellDiv.onclick = () => shoot(targetPlayerId, row, col);
-      }
-    }
-
-    grid.appendChild(cellDiv);
-  }
-  
-  renderCoordinates(boardSize, isEnemy);
+function renderBoard(board, boardSize, isMyBoard, targetPlayerId, containerId) {
+  const container = document.getElementById(containerId);
+  const onClickCell = !isMyBoard ? shoot : null;
+  const html = BOARD.renderBoardHTML(board, boardSize, isMyBoard, targetPlayerId, onClickCell);
+  container.innerHTML = html;
 }
 
 function updateGameDisplay(players) {
@@ -556,7 +497,7 @@ function updateGameDisplay(players) {
     document.getElementById('myPlayerName').textContent = myPlayer.name + ' (Ty)';
     document.getElementById('myBoardInfo').textContent = `${myBoardSize}×${myBoardSize} | Statki: ${myPlayer.ships ? (typeof myPlayer.ships === 'string' ? JSON.parse(myPlayer.ships) : myPlayer.ships).length : 0}`;
     
-    renderBoard(myBoardData, myBoardSize, true, myPlayerId, false);
+    renderBoard(myBoardData, myBoardSize, true, myPlayerId, 'myBoardContainer');
   }
 
   if (enemy?.board) {
@@ -567,7 +508,7 @@ function updateGameDisplay(players) {
     document.getElementById('enemyPlayerName').textContent = enemy.name;
     document.getElementById('enemyBoardInfo').textContent = `${enemyBoardSize}×${enemyBoardSize} | Statki: ${enemy.ships ? (typeof enemy.ships === 'string' ? JSON.parse(enemy.ships) : enemy.ships).length : 0}`;
     
-    renderBoard(enemyBoardData, enemyBoardSize, false, enemy.id, true);
+    renderBoard(enemyBoardData, enemyBoardSize, false, enemy.id, 'enemyBoardContainer');
   }
 }
 
@@ -604,7 +545,10 @@ function showGame() {
 
 document.getElementById('btnHide').onclick = () => {
   boardHidden = !boardHidden;
-  document.getElementById('boardGrid').style.opacity = boardHidden ? '0' : '1';
+  const myBoardContainer = document.getElementById('myBoardContainer');
+  if (myBoardContainer.querySelector('.miniBoard')) {
+    myBoardContainer.querySelector('.miniBoard').style.opacity = boardHidden ? '0' : '1';
+  }
   document.getElementById('btnHide').textContent = boardHidden ? '👁 Pokaż' : '👁 Ukryj';
 };
 
