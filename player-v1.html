@@ -517,4 +517,112 @@ function updateGameDisplay(players) {
 
 function startPolling() {
   setInterval(async () => {
-    if
+    if (!roomCode) return;
+
+    const { data: players } = await supabase.from('players').select('*').eq('room_code', roomCode);
+    const { data: room } = await supabase.from('rooms').select('*').eq('code', roomCode).single();
+
+    if (players) allPlayers = players;
+    if (room) currentRoom = room;
+
+    updateTurnBanner();
+    updateGameDisplay(players || []);
+
+    if (room?.status === 'finished') {
+      const myBoard = players?.find(p => p.id === myPlayerId)?.board;
+      if (myBoard) {
+        const board = typeof myBoard === 'string' ? JSON.parse(myBoard) : myBoard;
+        const allHit = board.filter(c => c.state === 'ship').every(c => c.hit);
+        if (allHit) showGameOver(false, 'przeciwnik');
+      }
+    }
+  }, 2000);
+}
+
+function showGame() {
+  document.getElementById('joinScreen').style.display = 'none';
+  document.getElementById('waitingScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+  startPolling();
+}
+
+document.getElementById('btnHide').onclick = () => {
+  boardHidden = !boardHidden;
+  const myBoardContainer = document.getElementById('myBoardContainer');
+  if (myBoardContainer.querySelector('.miniBoard')) {
+    myBoardContainer.querySelector('.miniBoard').style.opacity = boardHidden ? '0' : '1';
+  }
+  document.getElementById('btnHide').textContent = boardHidden ? '👁 Pokaż' : '👁 Ukryj';
+};
+
+document.getElementById('orientationToggle').onclick = () => {
+  const grid = document.getElementById('boardsGrid');
+  isVertical = !isVertical;
+  if (isVertical) {
+    grid.classList.add('vertical');
+  } else {
+    grid.classList.remove('vertical');
+  }
+};
+
+document.getElementById('btnJoin').addEventListener('click', async () => {
+  const code = document.getElementById('inputCode').value.trim().toUpperCase();
+  const name = document.getElementById('inputName').value.trim();
+  const btn = document.getElementById('btnJoin');
+
+  if (!code || code.length !== 5) return log('❌ Wpisz poprawny kod pokoju (5 znaków)', 'err');
+  if (!name || name.length < 2) return log('❌ Nick musi mieć min. 2 znaki', 'err');
+
+  btn.disabled = true;
+  log('⏳ Łączenie...', 'inf');
+
+  try {
+    const { data: room, error: roomErr } = await supabase.from('rooms').select('*').eq('code', code).single();
+    if (roomErr || !room) throw new Error('Nie znaleziono pokoju: ' + code);
+
+    roomCode = room.code;
+    currentRoom = room;
+
+    const deviceId = generateDeviceId();
+    const { data: existing } = await supabase.from('players').select('*').eq('room_code', code).eq('device_id', deviceId).single();
+
+    let player;
+    if (existing) {
+      player = existing;
+    } else {
+      if (room.status !== 'waiting') throw new Error('Gra już się rozpoczęła');
+      const { data: currentPlayers } = await supabase.from('players').select('*').eq('room_code', code);
+      if (currentPlayers && currentPlayers.length >= 4) throw new Error('Pokój jest pełny (max 4 graczy)');
+      const color = COLORS[currentPlayers ? currentPlayers.length % COLORS.length : 0];
+      const { data: newPlayer, error: playerErr } = await supabase.from('players').insert({ room_code: code, device_id: deviceId, name, color, status: 'waiting', is_host: false }).select().single();
+      if (playerErr) throw playerErr;
+      player = newPlayer;
+    }
+
+    myPlayerId = player.id;
+    myColor = player.color;
+    document.getElementById('joinScreen').style.display = 'none';
+
+    if (room.status === 'playing' || room.status === 'finished') {
+      showGame();
+    } else {
+      document.getElementById('waitingScreen').style.display = 'block';
+      document.getElementById('waitingName').textContent = '👤 ' + player.name;
+      const checkStart = setInterval(async () => {
+        const { data: updated } = await supabase.from('rooms').select('*').eq('code', code).single();
+        if (updated?.status === 'playing') {
+          clearInterval(checkStart);
+          currentRoom = updated;
+          showGame();
+        }
+      }, 1000);
+    }
+  } catch (err) {
+    log('❌ ' + err.message, 'err');
+    btn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
