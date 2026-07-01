@@ -1,9 +1,12 @@
 /**
- * BOARD.JS — Logika manipulacji planszą
+ * BOARD.JS — Logika manipulacji planszą + RENDERING
  * Zarządza stanem pola: woda, statek, trafienie
+ * NOWE: Renderowanie współrzędnych PRZYCZEPIONYCH do mapy
  */
 
 const BOARD = {
+  COORD_LETTERS: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+
   /**
    * Tworzy pustą planszę
    */
@@ -75,5 +78,74 @@ const BOARD = {
       str += '\n';
     }
     return str;
+  },
+
+  /**
+   * ✨ NOWE: Generuje HTML współrzędnych przyczepionych do mapy
+   * Zwraca obiekt { coordsYHtml, coordsXHtml }
+   */
+  renderCoordinatesHTML(boardSize) {
+    let coordsYHtml = '<div class="coordinatesY">';
+    let coordsXHtml = '<div class="coordinatesX">';
+    
+    for (let i = 0; i < boardSize; i++) {
+      coordsYHtml += `<div class="coordinateY">${i + 1}</div>`;
+      coordsXHtml += `<div class="coordinateX">${this.COORD_LETTERS[i]}</div>`;
+    }
+    
+    coordsYHtml += '</div>';
+    coordsXHtml += '</div>';
+    
+    return { coordsYHtml, coordsXHtml };
+  },
+
+  /**
+   * ✨ NOWE: Generuje HTML mapy + współrzędne razem
+   * Współrzędne są PRZYCZEPIĘTЕ do mapy i rosną razem!
+   */
+  renderBoardHTML(board, boardSize, isMyBoard = false, targetPlayerId = null, onClickCell = null) {
+    const { coordsYHtml, coordsXHtml } = this.renderCoordinatesHTML(boardSize);
+    
+    let cellsHtml = '';
+    for (let i = 0; i < board.length; i++) {
+      const cell = board[i];
+      const row = Math.floor(i / boardSize);
+      const col = i % boardSize;
+      
+      let classStr = 'cell';
+      
+      if (isMyBoard) {
+        if (cell.state === 'ship') classStr += ' ship';
+        if (cell.hit && cell.state === 'ship') classStr += ' hit';
+        if (cell.hit && cell.state === 'water') classStr += ' miss';
+      } else {
+        if (cell.hit && cell.state === 'ship') classStr += ' hit';
+        else if (cell.hit && cell.state === 'water') classStr += ' miss';
+        else if (!cell.hit && onClickCell) {
+          classStr += ' clickable';
+        }
+      }
+      
+      const clickAttr = (!isMyBoard && !cell.hit && onClickCell) 
+        ? `onclick="(${onClickCell.toString()})(${row}, ${col})"` 
+        : '';
+      
+      cellsHtml += `<div class="${classStr}" ${clickAttr}></div>`;
+    }
+    
+    // Struktura: współrzędne górne → współrzędne boczne + mapa
+    const html = `
+      <div class="boardWrapper">
+        ${coordsXHtml}
+        <div class="boardWithCoordinates">
+          ${coordsYHtml}
+          <div class="miniBoard" style="display: inline-grid; gap: 1px; grid-template-columns: repeat(${boardSize}, 16px);">
+            ${cellsHtml}
+          </div>
+        </div>
+      </div>
+    `;
+    
+    return html;
   }
 };
