@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Statki 2026 — Gracz v2</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
@@ -123,9 +123,37 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 /* BOARD WITH COORDINATES */
 .boardWrapper {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
   align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.coordinatesX {
+  display: flex;
+  gap: 1px;
+  justify-content: flex-start;
+  margin-left: 18px;
+  flex-shrink: 0;
+}
+
+.coordinateX {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  font-size: 9px;
+  color: #9fb0c8;
+  font-weight: 600;
+}
+
+.boardWithCoordinates {
+  display: flex;
+  gap: 2px;
   min-height: 0;
   flex: 1;
   overflow: hidden;
@@ -142,38 +170,11 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 }
 
 .coordinateY {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.boardWithCoordinates {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
-}
-
-.coordinatesX {
-  display: flex;
-  gap: 1px;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.coordinateX {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  color: #9fb0c8;
-  font-weight: 600;
 }
 
 #boardGrid, #enemyBoardGrid { 
@@ -186,8 +187,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 }
 
 .cell { 
-  width: 18px; 
-  height: 18px; 
+  width: 16px; 
+  height: 16px; 
   background: #0a1520; 
   transition: 0.15s; 
   cursor: default;
@@ -263,7 +264,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Gracz — v0.4.3</p>
+<p>Gracz — v0.4.4</p>
 
 <div id="joinScreen">
   <input id="inputCode" type="text" placeholder="Kod pokoju (np. ABC12)" maxlength="5" autocomplete="off" autocapitalize="characters">
@@ -296,9 +297,9 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
       </div>
       <div class="boardInfo" id="myBoardInfo"></div>
       <div class="boardWrapper">
-        <div class="coordinatesY" id="coordinatesY"></div>
+        <div class="coordinatesX" id="coordinatesX"></div>
         <div class="boardWithCoordinates">
-          <div class="coordinatesX" id="coordinatesX"></div>
+          <div class="coordinatesY" id="coordinatesY"></div>
           <div id="boardGrid"></div>
         </div>
       </div>
@@ -312,9 +313,9 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
       </div>
       <div class="boardInfo" id="enemyBoardInfo"></div>
       <div class="boardWrapper">
-        <div class="coordinatesY" id="enemyCoordinatesY"></div>
+        <div class="coordinatesX" id="enemyCoordinatesX"></div>
         <div class="boardWithCoordinates">
-          <div class="coordinatesX" id="enemyCoordinatesX"></div>
+          <div class="coordinatesY" id="enemyCoordinatesY"></div>
           <div id="enemyBoardGrid"></div>
         </div>
       </div>
@@ -489,7 +490,7 @@ function renderCoordinates(boardSize, isEnemy = false) {
 function renderBoard(board, boardSize, isMyBoard, targetPlayerId, isEnemy = false) {
   const gridId = isEnemy ? '#enemyBoardGrid' : '#boardGrid';
   const grid = document.querySelector(gridId);
-  grid.style.gridTemplateColumns = `repeat(${boardSize}, 18px)`;
+  grid.style.gridTemplateColumns = `repeat(${boardSize}, 16px)`;
   grid.innerHTML = '';
 
   for (let i = 0; i < board.length; i++) {
