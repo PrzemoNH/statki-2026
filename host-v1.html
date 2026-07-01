@@ -19,7 +19,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 #joinBox { display: none; margin-top: 26px; padding: 20px; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); max-width: 600px; }
 #joinBox input { width: 100%; padding: 14px 16px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #eaf2ff; font-size: 18px; border-radius: 12px; outline: none; }
 #joinBox input:focus { border-color: #00c2ff; background: rgba(0,194,255,0.05); box-shadow: 0 0 0 3px rgba(0,194,255,0.1); }
-#btnConfirmJoin { width: 100%; padding: 14px; margin-top: 12px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 16px; }
+#btnConfirmJoin { width: 100%; padding: 14px; margin-top: 12px; background: linear-gradient(135deg, #00ff99, #00c2ff); color: #06121f; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; }
 #btnConfirmJoin:hover { transform: translateY(-2px); }
 #joinStatus { margin-top: 12px; color: #9fb0c8; font-size: 14px; }
 #roomCodeBig { font-size: 2.6rem; letter-spacing: 10px; color: #00ffb3; font-weight: 800; margin: 10px 0 16px; text-shadow: 0 0 20px rgba(0,255,179,0.3); }
@@ -61,6 +61,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   gap: 2px;
   align-items: flex-start;
   justify-content: flex-start;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .coordinatesX {
@@ -69,6 +71,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   justify-content: flex-start;
   margin-left: 16px;
   flex-shrink: 0;
+  height: 14px;
 }
 
 .coordinateX {
@@ -80,6 +83,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   font-size: 8px;
   color: #9fb0c8;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .boardWithCoordinates {
@@ -87,6 +91,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   gap: 2px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  flex: 1;
 }
 
 .coordinatesY {
@@ -97,6 +103,9 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   color: #9fb0c8;
   font-weight: 600;
   flex-shrink: 0;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 0;
 }
 
 .coordinateY {
@@ -123,6 +132,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
   .boardCard { padding: 10px; }
   .miniCell { width: 12px; height: 12px; }
   .coordinateX, .coordinateY { width: 12px; height: 12px; font-size: 7px; }
+  .coordinatesX { height: 12px; }
   .boardTitle { font-size: 0.9rem; margin-bottom: 6px; }
   .boardInfo { font-size: 10px; margin-bottom: 6px; }
   .boardStats { font-size: 10px; }
@@ -143,13 +153,14 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 @media (orientation: landscape) {
   body { padding: 12px; }
   #boardsContainer { max-height: calc(100vh - 180px); }
+  .boardWrapper { min-height: 0; overflow: hidden; }
 }
 </style>
 </head>
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.5.4</p>
+<p>Panel hosta — v0.5.5</p>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
@@ -193,7 +204,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.5.4',
+  VERSION: '0.5.5',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
