@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Statki 2026 — Host v4</title>
+<title>Statki 2026 — Host v5</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
 body { min-height: 100vh; background: radial-gradient(circle at top, #12213a, #070b14 60%); color: #eaf2ff; padding: 20px; overflow-x: hidden; }
@@ -66,8 +66,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 }
 
 .coordinateY {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,8 +86,8 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 }
 
 .coordinateX {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,7 +119,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 <body>
 
 <h1>⚓ Statki 2026</h1>
-<p>Panel hosta — v0.4.0</p>
+<p>Panel hosta — v0.5.1</p>
 
 <div id="roomBox">
   <p>Kod pokoju:</p>
@@ -157,7 +157,7 @@ button { border: none; cursor: pointer; border-radius: 12px; padding: 14px 20px;
 
 <script type="module">
 const CONFIG = {
-  VERSION: '0.4.0',
+  VERSION: '0.5.1',
   SUPABASE_URL: 'https://bmnffrnwnyrqefrzrhtf.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbmZmcm53bnlycWVmcnpyaHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NTk2MDIsImV4cCI6MjA5ODEzNTYwMn0.irhBO6JX3PNXvJJFFEPcUEayzw-_cEJeBn9OsTcrGIE',
   BOARD_SIZES: { 2: 10, 3: 13, 4: 15 }
