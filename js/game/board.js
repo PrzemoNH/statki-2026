@@ -83,6 +83,8 @@ const BOARD = {
   /**
    * Generuje HTML mapy + współrzędne razem.
    * Współrzędne X są WEWNĄTRZ scrollowalnego kontenera razem z mapą — scrollują razem.
+   * Na końcu dodany spacer, żeby ostatnia kolumna (np. J) miała odstęp od krawędzi
+   * ekranu zamiast stykać się z nią przy pełnym doscrollowaniu.
    * Zamiast serializować funkcję do onclick, używamy data-atrybutów;
    * kliknięcia podpina wywołujący kod (player.js) przez addEventListener.
    */
@@ -130,7 +132,8 @@ const BOARD = {
     }
 
     // Struktura: coordsY po lewej; po prawej: coordsX nad mapą + mapa,
-    // oba wewnątrz .boardColumn, całość wewnątrz jednego scrollowalnego .boardWithCoordinates
+    // oba wewnątrz .boardColumn, całość wewnątrz jednego scrollowalnego .boardWithCoordinates.
+    // .rightSpacer to pusty pasek na końcu, żeby ostatnia kolumna miała oddech od krawędzi.
     const html = `
       <div class="boardWrapper">
         <div class="boardWithCoordinates">
@@ -141,6 +144,7 @@ const BOARD = {
               ${cellsHtml}
             </div>
           </div>
+          <div class="rightSpacer"></div>
         </div>
       </div>
     `;
